@@ -161,6 +161,7 @@ export default function App() {
   const { data: claimHistoryData } = useQuery<ClaimHistory[]>({
     queryKey: ['/api/claim-history'],
     enabled: !!address,
+    refetchInterval: 30000,
   });
 
   const createClaimMutation = useMutation({
@@ -233,6 +234,10 @@ export default function App() {
         setTimeLeft(remaining);
         setProgress(p);
         
+        const totalElapsedTime = 600000 - remaining;
+        const newReward = Math.min(200, (totalElapsedTime / 600000) * 200);
+        setDisplayedReward(newReward);
+        
         const newHashRate = range.min + Math.random() * (range.max - range.min);
         setHashRate(newHashRate);
 
@@ -262,10 +267,6 @@ export default function App() {
               const shareNum = Math.floor(Math.random() * 1000000);
               addLog('share', `Share accepted #${shareNum.toString(16).toUpperCase()}`);
               setSharesFound(prevShares => prevShares + 1);
-              setDisplayedReward(prevReward => {
-                const increment = (200 / 100) * (100 / 600);
-                return Math.min(200, prevReward + increment);
-              });
             }
             return prev;
           });
@@ -473,19 +474,20 @@ export default function App() {
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium" data-testid="text-wallet-address">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs px-1 py-0 h-4 w-fit" data-testid="badge-network">Arc Testnet</Badge>
-                      {isOnArcNetwork && walletBalance !== undefined && (
-                        <span className="text-xs text-green-400 font-mono" data-testid="text-wallet-usdc-balance">
-                          {formatUSDC(walletBalance as bigint)} USDC
-                        </span>
-                      )}
-                    </div>
+                    <Badge variant="outline" className="text-xs px-1 py-0 h-4 w-fit" data-testid="badge-network">Arc Testnet</Badge>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => disconnect()} className="h-6 ml-2 text-xs" data-testid="button-disconnect">
                     Disconnect
                   </Button>
                 </div>
+                {isOnArcNetwork && walletBalance !== undefined && (
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-muted-foreground">My Balance</span>
+                    <span className="text-sm font-bold text-green-400 font-mono" data-testid="text-wallet-usdc-balance">
+                      {formatUSDC(walletBalance as bigint)} USDC
+                    </span>
+                  </div>
+                )}
               </div>
             ) : (
               <Button onClick={() => connect({ connector: injected() })} className="bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-connect">
@@ -509,7 +511,7 @@ export default function App() {
 
         {isConnected && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -544,6 +546,20 @@ export default function App() {
                 <CardContent>
                   <div className="text-2xl font-bold text-green-500" data-testid="text-contract-balance">{formatUSDC(contractBalance as bigint)} USDC</div>
                   <p className="text-xs text-muted-foreground mt-1">Available in Mining Pool</p>
+                </CardContent>
+              </Card>
+
+              <Card className={`bg-card/50 backdrop-blur-sm ${isOnCooldown ? 'border-cyan-500/30' : 'border-primary/20'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Clock className="w-4 h-4" /> Next Mining Round
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold font-mono ${isOnCooldown ? 'text-cyan-400' : 'text-green-500'}`} data-testid="text-cooldown-timer">
+                    {isOnCooldown ? formatTime(cooldownTimeLeft) : 'Ready'}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{isOnCooldown ? 'Cooldown active' : 'Available to mine'}</p>
                 </CardContent>
               </Card>
             </div>
@@ -849,21 +865,6 @@ export default function App() {
               </Card>
             </div>
 
-            {isOnCooldown && (
-              <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/30">
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-cyan-400 animate-pulse" />
-                      <span className="text-sm font-medium text-muted-foreground">Next Mining Round</span>
-                    </div>
-                    <div className="text-2xl font-bold font-mono text-cyan-400" data-testid="text-cooldown-timer">
-                      {formatTime(cooldownTimeLeft)}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </>
         )}
 

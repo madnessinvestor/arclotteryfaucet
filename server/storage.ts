@@ -1,37 +1,40 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type ClaimHistory, type InsertClaimHistory } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createClaimHistory(claim: InsertClaimHistory): Promise<ClaimHistory>;
+  getClaimHistory(limit?: number): Promise<ClaimHistory[]>;
+  getClaimHistoryByWallet(walletAddress: string): Promise<ClaimHistory[]>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private claimHistory: Map<string, ClaimHistory>;
 
   constructor() {
-    this.users = new Map();
+    this.claimHistory = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createClaimHistory(insertClaim: InsertClaimHistory): Promise<ClaimHistory> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const claim: ClaimHistory = {
+      ...insertClaim,
+      id,
+      claimedAt: new Date(),
+    };
+    this.claimHistory.set(id, claim);
+    return claim;
+  }
+
+  async getClaimHistory(limit: number = 50): Promise<ClaimHistory[]> {
+    const claims = Array.from(this.claimHistory.values());
+    return claims.sort((a, b) => b.claimedAt.getTime() - a.claimedAt.getTime()).slice(0, limit);
+  }
+
+  async getClaimHistoryByWallet(walletAddress: string): Promise<ClaimHistory[]> {
+    const claims = Array.from(this.claimHistory.values()).filter(
+      (claim) => claim.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    );
+    return claims.sort((a, b) => b.claimedAt.getTime() - a.claimedAt.getTime());
   }
 }
 

@@ -585,41 +585,43 @@ export default function App() {
 
         {isConnected && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Wallet className="w-4 h-4" /> Total Claimed
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold" data-testid="text-total-claimed">{formatUSDC(totalClaimed)} USDC</div>
-                  <Progress value={Number(totalClaimed) / 20000} className="h-1 mt-2 bg-primary/10" />
-                  <p className="text-xs text-muted-foreground mt-1">Limit: 2,000.00 USDC</p>
+                <CardContent className="pt-0">
+                  <div className="text-3xl font-bold" data-testid="text-total-claimed">{formatUSDC(totalClaimed)} USDC</div>
+                  <Progress value={Number(totalClaimed) / 20000} className="h-1 mt-3 bg-primary/10" />
+                  <p className="text-xs text-muted-foreground mt-2">Limit: 2,000.00 USDC</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Zap className="w-4 h-4" /> Allowance Remaining
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold" data-testid="text-allowance-remaining">{formatUSDC(remainingAllowance)} USDC</div>
-                  <Progress value={Number(remainingAllowance) / 20000} className="h-1 mt-2 bg-primary/10" />
+                <CardContent className="pt-0">
+                  <div className="text-3xl font-bold" data-testid="text-allowance-remaining">{formatUSDC(remainingAllowance)} USDC</div>
+                  <Progress value={Number(remainingAllowance) / 20000} className="h-1 mt-3 bg-primary/10" />
+                  <p className="text-xs text-muted-foreground mt-2 invisible">Placeholder</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <DollarSign className="w-4 h-4" /> Contract Balance
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-500" data-testid="text-contract-balance">{formatUSDC(contractBalance as bigint)} USDC</div>
-                  <p className="text-xs text-muted-foreground mt-1">Available in Mining Pool</p>
+                <CardContent className="pt-0">
+                  <div className="text-3xl font-bold text-green-500" data-testid="text-contract-balance">{formatUSDC(contractBalance as bigint)} USDC</div>
+                  <Progress value={100} className="h-1 mt-3 bg-primary/10 invisible" />
+                  <p className="text-xs text-muted-foreground mt-2">Available in Mining Pool</p>
                 </CardContent>
               </Card>
 

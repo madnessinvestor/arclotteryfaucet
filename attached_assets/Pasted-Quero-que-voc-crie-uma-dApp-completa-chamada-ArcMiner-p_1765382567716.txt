@@ -1,0 +1,180 @@
+Quero que você crie uma dApp completa chamada ArcMiner para mineração fake de USDC na Arc Testnet.
+O contrato já está deployado e NÃO deve ser redeployado.
+O Replit deve criar APENAS o front-end + integração com o contrato já existente.
+
+1) Endereço do contrato (usar este, sem alterar)
+export const FAUCET_ADDRESS = "0xd9145CCE52D386f254917e481eB44e9943F39138";
+
+
+Crie um arquivo:
+
+frontend/src/config.js
+
+
+com exatamente essa constante.
+
+2) Configuração da Arc Testnet
+
+A dApp deve operar 100% na Arc Testnet:
+
+RPC: https://rpc.testnet.arc.network
+
+ChainId: 5042002
+
+Use wagmi + viem para gerenciar conexão e transações.
+
+3) Criar estrutura do projeto
+
+Estrutura obrigatória:
+
+frontend/
+  src/
+    App.jsx
+    main.jsx
+    config.js      // com FAUCET_ADDRESS
+    abi/ArcMiningFaucet.json
+
+
+O projeto deve ser criado com:
+
+npm create vite@latest frontend -- --template react
+
+
+Instalar dependências:
+
+npm install wagmi viem @tanstack/react-query
+
+4) ABI do contrato
+
+O Replit deve gerar o arquivo:
+
+frontend/src/abi/ArcMiningFaucet.json
+
+
+com o ABI do contrato ArcMiningFaucet (copiado do contrato que informei).
+
+5) FUNCIONALIDADES DO FRONT-END (OBRIGATÓRIO)
+A tela deve conter:
+🟦 1 — Botão de conectar wallet
+
+Usar wagmi → MetaMask.
+Se estiver conectado, mostrar o endereço.
+
+🟦 2 — Ler claimInfo do contrato
+
+Chamar o método:
+
+claimInfo(userAddress)
+
+
+e exibir:
+
+totalClaimed
+
+remainingAllowance (até 2000 USDC)
+
+canClaimAt (mostrar countdown se estiver em cooldown)
+
+Tudo deve ser convertido para USDC (6 decimais → dividir por 1e6).
+
+🟦 3 — Sistema de mineração fake (10 minutos fixos)
+
+Criar um hook ou componente com:
+
+Botão Start Mining
+
+Timer regressivo de 10 minutos (600.000 ms)
+
+Barra de progresso 0% → 100%
+
+Contador de “hashrate” subindo artificialmente
+
+Ao completar os 10 minutos → habilitar botão Claim
+
+🟦 4 — Claim USDC
+
+Botão chama:
+
+writeContract({
+  address: FAUCET_ADDRESS,
+  abi: ArcMiningFaucetABI,
+  functionName: "claim"
+})
+
+
+Regras:
+
+Recompensa por mineração: 200 USDC
+
+Cooldown: 10 minutos
+
+Máximo por wallet: 2000 USDC
+
+Se o usuário tentar clamar antes do cooldown → mostrar mensagem.
+
+🟦 5 — Explicar na interface
+
+Mostrar:
+
+"Cada sessão de mineração dura 10 minutos."
+
+"Cada claim entrega 200 USDC."
+
+"Cada carteira pode receber até 2000 USDC."
+
+“O faucet é abastecido manualmente pela wallet:
+0x157b1af849D0A48Fa7622AE44BB6606447C1ed57”
+
+6) main.jsx — configuração obrigatória
+
+Configurar wagmi e react-query:
+
+chain Arc Testnet
+
+provider usando http('https://rpc.testnet.arc.network')
+
+WagmiProvider + QueryClientProvider
+
+7) App.jsx — DEVE incluir:
+
+botão connect
+
+leitura real do contrato
+
+mineração fake com barra + hashes
+
+botão Claim
+
+bloqueio por cooldown
+
+tudo reativo: sempre atualizar claimInfo após claim
+
+8) O Replit deve ME ENTREGAR:
+
+frontend/src/App.jsx
+
+frontend/src/main.jsx
+
+frontend/src/config.js
+
+frontend/src/abi/ArcMiningFaucet.json
+
+Instruções de como rodar:
+
+cd frontend
+npm install
+npm run dev
+
+9) Regras importantes para o Replit seguir
+
+NÃO usar chave privada em nenhuma parte.
+
+NÃO fazer deploy de contrato.
+
+NÃO criar back-end.
+
+Apenas criar o front-end React com integração completa.
+
+Sempre usar o endereço do contrato que forneci.
+
+Dividir valores do contrato por 1e6 antes de exibir (USDC tem 6 decimais).

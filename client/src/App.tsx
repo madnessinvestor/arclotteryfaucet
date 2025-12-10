@@ -64,6 +64,8 @@ export default function App() {
   const [miningLogs, setMiningLogs] = useState<MiningLog[]>([]);
   const [blocksFound, setBlocksFound] = useState(0);
   const [sharesFound, setSharesFound] = useState(0);
+  const [canFindShares, setCanFindShares] = useState(false);
+  const [displayedReward, setDisplayedReward] = useState(0);
   const logIdRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -204,6 +206,7 @@ export default function App() {
         if (remaining <= 0) {
           setMiningState('ready');
           setAccumulatedReward(200);
+          setDisplayedReward(200);
           clearInterval(timer);
           addLog('reward', 'Mining session completed! Ready to claim 200 USDC');
           toast({
@@ -215,15 +218,25 @@ export default function App() {
 
       const logTimer = setInterval(() => {
         const rand = Math.random();
-        if (rand < 0.3) {
-          const shareNum = Math.floor(Math.random() * 1000000);
-          addLog('share', `Share accepted #${shareNum.toString(16).toUpperCase()}`);
-          setSharesFound(prev => prev + 1);
-        } else if (rand < 0.35) {
+        if (rand < 0.15) {
           const blockHash = Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
           addLog('block', `Block found! Hash: 0x${blockHash}...`);
           setBlocksFound(prev => prev + 1);
-        } else if (rand < 0.5) {
+          setCanFindShares(true);
+        } else if (rand < 0.45) {
+          setCanFindShares(prev => {
+            if (prev) {
+              const shareNum = Math.floor(Math.random() * 1000000);
+              addLog('share', `Share accepted #${shareNum.toString(16).toUpperCase()}`);
+              setSharesFound(prevShares => prevShares + 1);
+              setDisplayedReward(prevReward => {
+                const increment = (200 / 100) * (100 / 600);
+                return Math.min(200, prevReward + increment);
+              });
+            }
+            return prev;
+          });
+        } else if (rand < 0.6) {
           const range = getHashRateRange();
           const hr = range.min + Math.random() * (range.max - range.min);
           addLog('info', `Hashrate: ${hr.toFixed(2)} MH/s`);
@@ -258,12 +271,14 @@ export default function App() {
     setTimeLeft(600000);
     setProgress(0);
     setAccumulatedReward(0);
+    setDisplayedReward(0);
     setPausedProgress(0);
     setPausedReward(0);
     setPausedTimeLeft(0);
     setMiningLogs([]);
     setBlocksFound(0);
     setSharesFound(0);
+    setCanFindShares(false);
   };
 
   const pauseMining = () => {
@@ -280,11 +295,17 @@ export default function App() {
   };
 
   const openClaimDialog = () => {
+    setPausedProgress(progress);
+    setPausedReward(accumulatedReward);
+    setPausedTimeLeft(timeLeft);
+    setMiningState('paused');
+    addLog('info', 'Mining paused for claim confirmation');
     setShowClaimDialog(true);
   };
 
   const confirmStopAndClaim = () => {
     setShowClaimDialog(false);
+    setAccumulatedReward(displayedReward);
     setMiningState('ready');
     addLog('info', 'Mining stopped. Ready to claim rewards.');
   };
@@ -318,11 +339,13 @@ export default function App() {
       });
       setMiningState('idle');
       setAccumulatedReward(0);
+      setDisplayedReward(0);
       setProgress(0);
       setPausedProgress(0);
       setPausedReward(0);
       setPausedTimeLeft(0);
       setMiningLogs([]);
+      setCanFindShares(false);
       refetchClaimInfo();
       refetchBalance();
     }
@@ -547,7 +570,7 @@ export default function App() {
                   </div>
                   <div className="bg-black/40 rounded-md p-3 border border-border">
                     <p className="text-xs text-muted-foreground">Pending Reward</p>
-                    <p className="text-lg font-bold text-cyan-400" data-testid="text-pending-reward">{accumulatedReward.toFixed(2)} USDC</p>
+                    <p className="text-lg font-bold text-cyan-400" data-testid="text-pending-reward">{displayedReward.toFixed(2)} USDC</p>
                   </div>
                 </div>
 
@@ -555,7 +578,7 @@ export default function App() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Session Progress</span>
                     <div className="flex gap-4">
-                      <span className="text-primary font-bold">{accumulatedReward.toFixed(2)} USDC</span>
+                      <span className="text-primary font-bold">{displayedReward.toFixed(2)} USDC</span>
                       <span className="font-bold">{Math.round(progress)}%</span>
                     </div>
                   </div>
@@ -626,7 +649,7 @@ export default function App() {
                         {isConfirming ? (
                           <>Confirming...</>
                         ) : (
-                          <><Banknote className="w-4 h-4 mr-2" /> Withdraw {accumulatedReward.toFixed(0)} USDC</>
+                          <><Banknote className="w-4 h-4 mr-2" /> Withdraw {displayedReward.toFixed(0)} USDC</>
                         )}
                       </Button>
                     )}
@@ -708,7 +731,7 @@ export default function App() {
               </div>
               <div className="border-t border-border pt-3 flex justify-between">
                 <span className="text-muted-foreground">Total Reward:</span>
-                <span className="font-bold text-xl text-cyan-400">{accumulatedReward.toFixed(2)} USDC</span>
+                <span className="font-bold text-xl text-cyan-400">{displayedReward.toFixed(2)} USDC</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground text-center">
@@ -730,7 +753,7 @@ export default function App() {
               data-testid="button-dialog-confirm"
             >
               <Banknote className="w-4 h-4 mr-2" />
-              Confirm & Claim
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>

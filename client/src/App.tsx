@@ -89,11 +89,8 @@ export default function App() {
 
   const createClaimMutation = useMutation({
     mutationFn: async (data: { walletAddress: string; amount: string; transactionHash?: string }) => {
-      return await apiRequest('/api/claim-history', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res = await apiRequest('POST', '/api/claim-history', data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/claim-history'] });

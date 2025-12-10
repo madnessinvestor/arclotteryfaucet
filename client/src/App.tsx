@@ -17,6 +17,7 @@ import { formatUnits } from "viem";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ClaimHistory } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { SiX, SiGithub, SiYoutube, SiInstagram, SiTelegram, SiDiscord } from "react-icons/si";
 
 const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
 const MAX_CLAIM_LIMIT = BigInt(2000 * 1000000); // 2000 USDC with 6 decimals
@@ -622,19 +623,6 @@ export default function App() {
                 </CardContent>
               </Card>
 
-              <Card className={`bg-card/50 backdrop-blur-sm ${isOnCooldown ? 'border-cyan-500/30' : 'border-primary/20'}`}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Clock className="w-4 h-4" /> Next Mining Round
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold font-mono ${isOnCooldown ? 'text-cyan-400' : 'text-green-500'}`} data-testid="text-cooldown-timer">
-                    {isOnCooldown ? formatTime(cooldownTimeLeft) : 'Ready'}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{isOnCooldown ? 'Cooldown active' : 'Available to mine'}</p>
-                </CardContent>
-              </Card>
             </div>
 
             {hasReachedLimit && (
@@ -947,8 +935,34 @@ export default function App() {
         )}
 
         <footer className="border-t border-border/40 pt-6 pb-4">
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-4">
             <p className="text-lg font-bold">ArcMiner</p>
+            <div className="flex items-center justify-center gap-4">
+              <a href="https://x.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-x">
+                <SiX className="w-5 h-5" />
+              </a>
+              <a href="https://github.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-github">
+                <SiGithub className="w-5 h-5" />
+              </a>
+              <a href="https://www.youtube.com/@madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-youtube">
+                <SiYoutube className="w-5 h-5" />
+              </a>
+              <a href="https://farcaster.xyz/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-farcaster">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.24 0.24H5.76C2.58 0.24 0 2.82 0 6v12c0 3.18 2.58 5.76 5.76 5.76h12.48c3.18 0 5.76-2.58 5.76-5.76V6c0-3.18-2.58-5.76-5.76-5.76zM19.52 18c0 0.85-0.69 1.54-1.54 1.54H6.02c-0.85 0-1.54-0.69-1.54-1.54V6c0-0.85 0.69-1.54 1.54-1.54h11.96c0.85 0 1.54 0.69 1.54 1.54v12z"/>
+                  <path d="M8.25 7.5L6 10.5v6h3V12h1.5v4.5H12v-6L9.75 7.5h-1.5zM15.75 7.5L13.5 10.5v6h3V12H18v4.5h1.5v-6L17.25 7.5h-1.5z"/>
+                </svg>
+              </a>
+              <a href="https://www.instagram.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-instagram">
+                <SiInstagram className="w-5 h-5" />
+              </a>
+              <a href="https://web.telegram.org/k/#@madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-telegram">
+                <SiTelegram className="w-5 h-5" />
+              </a>
+              <a href="https://discord.com/users/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-discord">
+                <SiDiscord className="w-5 h-5" />
+              </a>
+            </div>
             <p className="text-xs text-muted-foreground">2025 ArcMiner - Built on Arc Network. All rights reserved.</p>
           </div>
         </footer>

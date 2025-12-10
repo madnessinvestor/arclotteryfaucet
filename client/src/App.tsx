@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAccount, useConnect, useDisconnect, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useChainId } from "wagmi";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { injected } from "wagmi/connectors";
@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Zap, Timer, AlertCircle, Terminal, Cpu, Play, Pause, Square, Banknote, History, DollarSign } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Wallet, Zap, Timer, AlertCircle, Terminal, Cpu, Play, Pause, Square, Banknote, History, DollarSign, Monitor } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUnits } from "viem";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -28,6 +30,13 @@ const formatTime = (ms: number) => {
   const minutes = Math.floor((ms / 1000 / 60) % 60);
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
+
+interface MiningLog {
+  id: number;
+  timestamp: string;
+  type: 'block' | 'share' | 'info' | 'reward';
+  message: string;
+}
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -47,6 +56,16 @@ export default function App() {
   const [pausedProgress, setPausedProgress] = useState(0);
   const [pausedReward, setPausedReward] = useState(0);
   const [pausedTimeLeft, setPausedTimeLeft] = useState(0);
+  const [showClaimDialog, setShowClaimDialog] = useState(false);
+  
+  const [cpuEnabled, setCpuEnabled] = useState(true);
+  const [gpuEnabled, setGpuEnabled] = useState(false);
+  
+  const [miningLogs, setMiningLogs] = useState<MiningLog[]>([]);
+  const [blocksFound, setBlocksFound] = useState(0);
+  const [sharesFound, setSharesFound] = useState(0);
+  const logIdRef = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isConnected) {
@@ -122,13 +141,49 @@ export default function App() {
     }
   }, [globalCooldown]);
 
+  const getHashRateRange = () => {
+    if (cpuEnabled && gpuEnabled) {
+      return { min: 400, max: 700 };
+    } else if (gpuEnabled) {
+      return { min: 300, max: 500 };
+    } else if (cpuEnabled) {
+      return { min: 100, max: 200 };
+    }
+    return { min: 0, max: 0 };
+  };
+
+  const addLog = (type: MiningLog['type'], message: string) => {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString('en-US', { hour12: false });
+    logIdRef.current += 1;
+    const newLog: MiningLog = {
+      id: logIdRef.current,
+      timestamp,
+      type,
+      message,
+    };
+    setMiningLogs(prev => [...prev.slice(-50), newLog]);
+  };
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [miningLogs]);
+
   useEffect(() => {
     if (miningState === 'mining') {
       const startTime = Date.now();
       const initialProgress = pausedProgress;
-      const initialReward = pausedReward;
       const remainingTime = pausedTimeLeft || 600000;
       const endTime = startTime + remainingTime;
+      const range = getHashRateRange();
+
+      if (miningLogs.length === 0 || pausedProgress === 0) {
+        addLog('info', 'Connecting to Arc Testnet Node...');
+        addLog('info', 'Connection established successfully');
+        addLog('info', `Mining started with ${cpuEnabled ? 'CPU' : ''}${cpuEnabled && gpuEnabled ? ' + ' : ''}${gpuEnabled ? 'GPU' : ''}`);
+      }
 
       const timer = setInterval(() => {
         const now = Date.now();
@@ -143,12 +198,14 @@ export default function App() {
         setProgress(p);
         setAccumulatedReward(accumulated);
         
-        setHashRate(45 + Math.random() * 20);
+        const newHashRate = range.min + Math.random() * (range.max - range.min);
+        setHashRate(newHashRate);
 
         if (remaining <= 0) {
           setMiningState('ready');
           setAccumulatedReward(200);
           clearInterval(timer);
+          addLog('reward', 'Mining session completed! Ready to claim 200 USDC');
           toast({
             title: "Mining Complete!",
             description: "You mined a block. Ready to claim rewards.",
@@ -156,9 +213,29 @@ export default function App() {
         }
       }, 100);
 
-      return () => clearInterval(timer);
+      const logTimer = setInterval(() => {
+        const rand = Math.random();
+        if (rand < 0.3) {
+          const shareNum = Math.floor(Math.random() * 1000000);
+          addLog('share', `Share accepted #${shareNum.toString(16).toUpperCase()}`);
+          setSharesFound(prev => prev + 1);
+        } else if (rand < 0.35) {
+          const blockHash = Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+          addLog('block', `Block found! Hash: 0x${blockHash}...`);
+          setBlocksFound(prev => prev + 1);
+        } else if (rand < 0.5) {
+          const range = getHashRateRange();
+          const hr = range.min + Math.random() * (range.max - range.min);
+          addLog('info', `Hashrate: ${hr.toFixed(2)} MH/s`);
+        }
+      }, 800);
+
+      return () => {
+        clearInterval(timer);
+        clearInterval(logTimer);
+      };
     }
-  }, [miningState, pausedProgress, pausedReward, pausedTimeLeft]);
+  }, [miningState, pausedProgress, pausedTimeLeft, cpuEnabled, gpuEnabled]);
 
   const startMining = () => {
     if (globalCooldown > 0) {
@@ -169,6 +246,14 @@ export default function App() {
       });
       return;
     }
+    if (!cpuEnabled && !gpuEnabled) {
+      toast({
+        variant: "destructive",
+        title: "No Mining Device",
+        description: "Please enable CPU or GPU to start mining.",
+      });
+      return;
+    }
     setMiningState('mining');
     setTimeLeft(600000);
     setProgress(0);
@@ -176,6 +261,9 @@ export default function App() {
     setPausedProgress(0);
     setPausedReward(0);
     setPausedTimeLeft(0);
+    setMiningLogs([]);
+    setBlocksFound(0);
+    setSharesFound(0);
   };
 
   const pauseMining = () => {
@@ -183,14 +271,26 @@ export default function App() {
     setPausedReward(accumulatedReward);
     setPausedTimeLeft(timeLeft);
     setMiningState('paused');
+    addLog('info', 'Mining paused by user');
   };
 
   const continueMining = () => {
+    addLog('info', 'Mining resumed');
     setMiningState('mining');
   };
 
-  const stopAndClaim = () => {
+  const openClaimDialog = () => {
+    setShowClaimDialog(true);
+  };
+
+  const confirmStopAndClaim = () => {
+    setShowClaimDialog(false);
     setMiningState('ready');
+    addLog('info', 'Mining stopped. Ready to claim rewards.');
+  };
+
+  const cancelClaimDialog = () => {
+    setShowClaimDialog(false);
   };
 
   const handleClaim = () => {
@@ -200,7 +300,7 @@ export default function App() {
       address: FAUCET_ADDRESS,
       abi: ArcMiningFaucetABI,
       functionName: "claim",
-      chainId: 5042002, // Arc Testnet
+      chainId: 5042002,
     });
   };
 
@@ -222,6 +322,7 @@ export default function App() {
       setPausedProgress(0);
       setPausedReward(0);
       setPausedTimeLeft(0);
+      setMiningLogs([]);
       refetchClaimInfo();
       refetchBalance();
     }
@@ -236,6 +337,15 @@ export default function App() {
       });
     }
   }, [writeError]);
+
+  const getLogColor = (type: MiningLog['type']) => {
+    switch (type) {
+      case 'block': return 'text-yellow-400';
+      case 'share': return 'text-green-400';
+      case 'reward': return 'text-cyan-400';
+      default: return 'text-muted-foreground';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 font-mono relative overflow-hidden">
@@ -346,20 +456,51 @@ export default function App() {
               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
               
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Terminal className="w-5 h-5 text-primary" />
-                  Mining Console v1.0.4
-                </CardTitle>
-                <CardDescription>
-                  Start a mining session to secure the network and earn USDC rewards.
-                </CardDescription>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Terminal className="w-5 h-5 text-primary" />
+                      Mining Console v1.0.5
+                    </CardTitle>
+                    <CardDescription>
+                      Select your mining devices and start earning USDC rewards.
+                    </CardDescription>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={cpuEnabled ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCpuEnabled(!cpuEnabled)}
+                      disabled={miningState === 'mining'}
+                      className={`gap-2 ${cpuEnabled ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                      data-testid="button-toggle-cpu"
+                    >
+                      <Cpu className="w-4 h-4" />
+                      CPU
+                    </Button>
+                    <Button
+                      variant={gpuEnabled ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setGpuEnabled(!gpuEnabled)}
+                      disabled={miningState === 'mining'}
+                      className={`gap-2 ${gpuEnabled ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                      data-testid="button-toggle-gpu"
+                    >
+                      <Monitor className="w-4 h-4" />
+                      GPU
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               
               <CardContent className="space-y-6 relative">
                 
-                <div className="h-48 rounded-lg border border-border bg-black/60 p-4 font-mono text-xs flex flex-col justify-end relative overflow-hidden">
-                  
-                  {miningState === 'idle' && (
+                <div 
+                  ref={scrollRef}
+                  className="h-48 rounded-lg border border-border bg-black/60 p-4 font-mono text-xs overflow-y-auto relative"
+                >
+                  {miningState === 'idle' && miningLogs.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center flex-col gap-4">
                       <div className="w-16 h-16 rounded-full border-2 border-dashed border-muted-foreground animate-[spin_10s_linear_infinite]"></div>
                       <p className="text-muted-foreground">System Idle. Ready to initialize.</p>
@@ -367,30 +508,47 @@ export default function App() {
                   )}
 
                   {miningState === 'paused' && (
-                    <div className="absolute inset-0 flex items-center justify-center flex-col gap-4">
+                    <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 bg-black/80">
                       <Pause className="w-16 h-16 text-yellow-500" />
-                      <p className="text-yellow-500">Mining Paused</p>
-                      <p className="text-muted-foreground text-center">Choose to continue or stop and claim</p>
+                      <p className="text-yellow-500 font-bold">Mining Paused</p>
+                      <p className="text-muted-foreground text-center">Click Continue to resume mining</p>
                     </div>
                   )}
 
-                  {(miningState === 'mining' || miningState === 'ready') && (
-                    <>
-                      <div className="absolute inset-0 opacity-20 animate-scan bg-gradient-to-b from-transparent via-primary to-transparent h-[50%] w-full pointer-events-none"></div>
-                      <div className="space-y-1 text-green-500/80">
-                        <p>&gt; Connection established to Arc Testnet Node...</p>
-                        <p className="text-primary">&gt; Hashrate: {hashRate.toFixed(2)} MH/s</p>
-                        <p>&gt; Mining in progress...</p>
-                        <div className="mt-4 p-2 border border-green-500/30 bg-green-500/10 rounded inline-block">
-                          <p className="text-lg font-bold text-green-400" data-testid="text-pending-reward">
-                             PENDING REWARD: {accumulatedReward.toFixed(4)} USDC
-                          </p>
-                        </div>
-                        {miningState === 'ready' && <p className="text-yellow-400 mt-2">&gt; SESSION ENDED. READY TO CLAIM.</p>}
-                        <p className="animate-pulse">_</p>
-                      </div>
-                    </>
+                  {miningLogs.length > 0 && (
+                    <div className="space-y-1">
+                      {(miningState === 'mining' || miningState === 'ready') && (
+                        <div className="absolute inset-0 opacity-10 animate-scan bg-gradient-to-b from-transparent via-primary to-transparent h-[50%] w-full pointer-events-none"></div>
+                      )}
+                      {miningLogs.map((log) => (
+                        <p key={log.id} className={getLogColor(log.type)}>
+                          <span className="text-muted-foreground">[{log.timestamp}]</span> {log.message}
+                        </p>
+                      ))}
+                      {miningState === 'mining' && <p className="text-green-500 animate-pulse">_</p>}
+                    </div>
                   )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div className="bg-black/40 rounded-md p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">Hashrate</p>
+                    <p className="text-lg font-bold text-primary" data-testid="text-hashrate">
+                      {miningState === 'mining' ? hashRate.toFixed(2) : '0.00'} MH/s
+                    </p>
+                  </div>
+                  <div className="bg-black/40 rounded-md p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">Shares Found</p>
+                    <p className="text-lg font-bold text-green-500" data-testid="text-shares">{sharesFound}</p>
+                  </div>
+                  <div className="bg-black/40 rounded-md p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">Blocks Found</p>
+                    <p className="text-lg font-bold text-yellow-500" data-testid="text-blocks">{blocksFound}</p>
+                  </div>
+                  <div className="bg-black/40 rounded-md p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">Pending Reward</p>
+                    <p className="text-lg font-bold text-cyan-400" data-testid="text-pending-reward">{accumulatedReward.toFixed(2)} USDC</p>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -412,7 +570,7 @@ export default function App() {
                     {miningState === 'idle' && (
                       <Button 
                         onClick={startMining} 
-                        disabled={globalCooldown > 0}
+                        disabled={globalCooldown > 0 || (!cpuEnabled && !gpuEnabled)}
                         className="w-40 bg-primary hover:bg-primary/90"
                         data-testid="button-start-mining"
                       >
@@ -421,32 +579,39 @@ export default function App() {
                     )}
 
                     {miningState === 'mining' && (
-                      <Button 
-                        onClick={pauseMining}
-                        variant="secondary"
-                        className="w-40"
-                        data-testid="button-pause-mining"
-                      >
-                        <Pause className="w-4 h-4 mr-2" /> Pause Mining
-                      </Button>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button 
+                          onClick={pauseMining}
+                          variant="secondary"
+                          data-testid="button-pause-mining"
+                        >
+                          <Pause className="w-4 h-4 mr-2" /> Pause Mining
+                        </Button>
+                        <Button 
+                          onClick={openClaimDialog}
+                          variant="destructive"
+                          data-testid="button-stop-claim"
+                        >
+                          <Square className="w-4 h-4 mr-2" /> Stop & Claim
+                        </Button>
+                      </div>
                     )}
 
                     {miningState === 'paused' && (
                       <div className="flex gap-2 flex-wrap">
                         <Button 
                           onClick={continueMining}
-                          className="w-40 bg-primary hover:bg-primary/90"
+                          className="bg-primary hover:bg-primary/90"
                           data-testid="button-continue-mining"
                         >
-                          <Play className="w-4 h-4 mr-2" /> Continue
+                          <Play className="w-4 h-4 mr-2" /> Continue Mining
                         </Button>
                         <Button 
-                          onClick={stopAndClaim}
+                          onClick={openClaimDialog}
                           variant="destructive"
-                          className="w-48"
-                          data-testid="button-stop-claim"
+                          data-testid="button-stop-claim-paused"
                         >
-                          <Square className="w-4 h-4 mr-2" /> Stop & Claim {accumulatedReward.toFixed(0)} USDC
+                          <Square className="w-4 h-4 mr-2" /> Stop & Claim
                         </Button>
                       </div>
                     )}
@@ -476,10 +641,10 @@ export default function App() {
                 <AlertCircle className="h-4 w-4 text-primary" />
                 <AlertTitle>System Rules</AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground space-y-1 mt-2">
-                  <p>• Each mining session lasts 10 minutes.</p>
-                  <p>• Potential reward: up to 200 USDC.</p>
-                  <p>• Each wallet can receive up to 2000 USDC.</p>
-                  <p className="break-all">• The faucet is manually funded by wallet: 0x157b1af849D0A48Fa7622AE44BB6606447C1ed57</p>
+                  <p>Each mining session lasts 10 minutes.</p>
+                  <p>Potential reward: up to 200 USDC.</p>
+                  <p>Each wallet can receive up to 2000 USDC.</p>
+                  <p className="break-all">Contract: {FAUCET_ADDRESS}</p>
                 </AlertDescription>
               </Alert>
 
@@ -514,11 +679,62 @@ export default function App() {
         <footer className="border-t border-border/40 pt-6 pb-4">
           <div className="text-center space-y-2">
             <p className="text-lg font-bold">ArcMiner</p>
-            <p className="text-xs text-muted-foreground">© 2025 ArcMiner — Built on Arc Network. All rights reserved.</p>
+            <p className="text-xs text-muted-foreground">2025 ArcMiner - Built on Arc Network. All rights reserved.</p>
           </div>
         </footer>
       </div>
 
+      <Dialog open={showClaimDialog} onOpenChange={setShowClaimDialog}>
+        <DialogContent data-testid="dialog-claim-summary">
+          <DialogHeader>
+            <DialogTitle>Claim Summary</DialogTitle>
+            <DialogDescription>
+              Review your mining rewards before claiming.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-primary/5 border border-primary/20 rounded-md p-4 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Mining Progress:</span>
+                <span className="font-bold">{Math.round(progress)}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Shares Found:</span>
+                <span className="font-bold text-green-500">{sharesFound}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Blocks Found:</span>
+                <span className="font-bold text-yellow-500">{blocksFound}</span>
+              </div>
+              <div className="border-t border-border pt-3 flex justify-between">
+                <span className="text-muted-foreground">Total Reward:</span>
+                <span className="font-bold text-xl text-cyan-400">{accumulatedReward.toFixed(2)} USDC</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              The reward will be sent from the contract to your connected wallet on Arc Network.
+            </p>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              onClick={cancelClaimDialog}
+              variant="outline"
+              className="w-full sm:w-auto"
+              data-testid="button-dialog-cancel"
+            >
+              Go Back
+            </Button>
+            <Button
+              onClick={confirmStopAndClaim}
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+              data-testid="button-dialog-confirm"
+            >
+              <Banknote className="w-4 h-4 mr-2" />
+              Confirm & Claim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

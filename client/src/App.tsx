@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Wallet, Zap, AlertCircle, Terminal, Cpu, Play, Pause, Square, Banknote, History, DollarSign, Monitor, AlertTriangle, Link } from "lucide-react";
+import { Wallet, Zap, AlertCircle, Terminal, Cpu, Play, Pause, Square, Banknote, History, DollarSign, Monitor, AlertTriangle, Link, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUnits } from "viem";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -70,6 +70,11 @@ export default function App() {
 
   const isOnArcNetwork = currentChainId === ARC_TESTNET_CHAIN_ID;
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+  
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
+  const [isOnCooldown, setIsOnCooldown] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const CLAIMS_PER_PAGE = 10;
 
   // Auto-connect wallet on load
   useEffect(() => {
@@ -138,6 +143,17 @@ export default function App() {
     functionName: "balanceOf",
     args: [FAUCET_ADDRESS],
     query: {
+      refetchInterval: 10000,
+    },
+  });
+
+  const { data: walletBalance, refetch: refetchWalletBalance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: USDCABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isOnArcNetwork,
       refetchInterval: 10000,
     },
   });
@@ -284,6 +300,14 @@ export default function App() {
       });
       return;
     }
+    if (isOnCooldown) {
+      toast({
+        variant: "destructive",
+        title: "Cooldown Active",
+        description: "Please wait for the cooldown timer to finish before starting a new mining session.",
+      });
+      return;
+    }
     if (!cpuEnabled && !gpuEnabled) {
       toast({
         variant: "destructive",
@@ -383,8 +407,11 @@ export default function App() {
       setCanFindShares(false);
       setBlocksFound(0);
       setSharesFound(0);
+      setIsOnCooldown(true);
+      setCooldownTimeLeft(600000);
       refetchClaimInfo();
       refetchBalance();
+      refetchWalletBalance();
     }
   }, [isConfirmed, hash, address]);
 
@@ -397,6 +424,21 @@ export default function App() {
       });
     }
   }, [writeError]);
+
+  useEffect(() => {
+    if (isOnCooldown && cooldownTimeLeft > 0) {
+      const timer = setInterval(() => {
+        setCooldownTimeLeft(prev => {
+          if (prev <= 1000) {
+            setIsOnCooldown(false);
+            return 0;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isOnCooldown, cooldownTimeLeft]);
 
   const getLogColor = (type: MiningLog['type']) => {
     switch (type) {
@@ -431,7 +473,14 @@ export default function App() {
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium" data-testid="text-wallet-address">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
-                    <Badge variant="outline" className="text-xs px-1 py-0 h-4 w-fit" data-testid="badge-network">Arc Testnet</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs px-1 py-0 h-4 w-fit" data-testid="badge-network">Arc Testnet</Badge>
+                      {isOnArcNetwork && walletBalance !== undefined && (
+                        <span className="text-xs text-green-400 font-mono" data-testid="text-wallet-usdc-balance">
+                          {formatUSDC(walletBalance as bigint)} USDC
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => disconnect()} className="h-6 ml-2 text-xs" data-testid="button-disconnect">
                     Disconnect
@@ -574,7 +623,7 @@ export default function App() {
                 
                 <div 
                   ref={scrollRef}
-                  className="h-48 rounded-lg border border-border bg-black/60 p-4 font-mono text-xs overflow-y-auto relative"
+                  className="h-48 rounded-lg border border-border bg-black/60 p-4 font-mono text-xs overflow-y-auto relative dark-scrollbar"
                 >
                   {miningState === 'idle' && miningLogs.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center flex-col gap-4">
@@ -654,7 +703,7 @@ export default function App() {
                     {miningState === 'idle' && (
                       <Button 
                         onClick={startMining} 
-                        disabled={!isOnArcNetwork || hasReachedLimit || (!cpuEnabled && !gpuEnabled)}
+                        disabled={!isOnArcNetwork || hasReachedLimit || isOnCooldown || (!cpuEnabled && !gpuEnabled)}
                         className="w-48 bg-primary hover:bg-primary/90"
                         data-testid="button-start-mining"
                       >
@@ -741,17 +790,57 @@ export default function App() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2 max-h-48 overflow-y-auto dark-scrollbar">
                     {claimHistoryData && claimHistoryData.length > 0 ? (
-                      claimHistoryData.map((claim) => (
-                        <div key={claim.id} className="flex justify-between items-center text-xs border-b border-border/20 pb-2" data-testid={`claim-history-${claim.id}`}>
-                          <div className="flex flex-col gap-1">
-                            <span className="font-mono text-muted-foreground">{claim.walletAddress.slice(0, 6)}...{claim.walletAddress.slice(-4)}</span>
-                            <span className="text-muted-foreground">{new Date(claim.claimedAt).toLocaleDateString()}</span>
+                      <>
+                        {claimHistoryData
+                          .slice((historyPage - 1) * CLAIMS_PER_PAGE, historyPage * CLAIMS_PER_PAGE)
+                          .map((claim) => (
+                            <div key={claim.id} className="flex justify-between items-center text-xs border-b border-border/20 pb-2" data-testid={`claim-history-${claim.id}`}>
+                              <div className="flex flex-col gap-1">
+                                <span className="font-mono text-muted-foreground">{claim.walletAddress.slice(0, 6)}...{claim.walletAddress.slice(-4)}</span>
+                                <span className="text-muted-foreground">{new Date(claim.claimedAt).toLocaleDateString()}</span>
+                              </div>
+                              <span className="font-bold text-green-500">+{parseFloat(claim.amount).toFixed(2)} USDC</span>
+                            </div>
+                          ))}
+                        {claimHistoryData.length > CLAIMS_PER_PAGE && (
+                          <div className="flex items-center justify-center gap-1 pt-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setHistoryPage(prev => Math.max(1, prev - 1))}
+                              disabled={historyPage === 1}
+                              data-testid="button-history-prev"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </Button>
+                            {Array.from({ length: Math.ceil(claimHistoryData.length / CLAIMS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                              <Button
+                                key={page}
+                                variant={historyPage === page ? "default" : "ghost"}
+                                size="sm"
+                                className="h-6 w-6 p-0 text-xs"
+                                onClick={() => setHistoryPage(page)}
+                                data-testid={`button-history-page-${page}`}
+                              >
+                                {page}
+                              </Button>
+                            ))}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setHistoryPage(prev => Math.min(Math.ceil(claimHistoryData.length / CLAIMS_PER_PAGE), prev + 1))}
+                              disabled={historyPage >= Math.ceil(claimHistoryData.length / CLAIMS_PER_PAGE)}
+                              data-testid="button-history-next"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
                           </div>
-                          <span className="font-bold text-green-500">+{parseFloat(claim.amount).toFixed(2)} USDC</span>
-                        </div>
-                      ))
+                        )}
+                      </>
                     ) : (
                       <p className="text-xs text-muted-foreground text-center py-4">No claims yet</p>
                     )}
@@ -759,6 +848,22 @@ export default function App() {
                 </CardContent>
               </Card>
             </div>
+
+            {isOnCooldown && (
+              <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/30">
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-cyan-400 animate-pulse" />
+                      <span className="text-sm font-medium text-muted-foreground">Next Mining Round</span>
+                    </div>
+                    <div className="text-2xl font-bold font-mono text-cyan-400" data-testid="text-cooldown-timer">
+                      {formatTime(cooldownTimeLeft)}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 

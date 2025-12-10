@@ -91,3 +91,27 @@
   80% { clip: rect(25px, 9999px, 73px, 0); }
   100% { clip: rect(53px, 9999px, 5px, 0); }
 }
+
+.dark-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: hsl(224 71% 4%);
+  border-radius: 4px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(263 70% 30%);
+  border-radius: 4px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(263 70% 40%);
+}
+
+.dark-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(263 70% 30%) hsl(224 71% 4%);
+}

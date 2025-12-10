@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import App from "./App";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { defineChain } from "viem";
+import { injected } from "wagmi/connectors";
 
 // Arc Testnet Configuration
 const arcTestnet = defineChain({
@@ -13,17 +14,23 @@ const arcTestnet = defineChain({
   name: "Arc Testnet",
   nativeCurrency: {
     decimals: 18,
-    name: "Ether",
-    symbol: "ETH",
+    name: "USDC",
+    symbol: "USDC",
   },
   rpcUrls: {
     default: { http: ["https://rpc.testnet.arc.network"] },
+  },
+  blockExplorers: {
+    default: { name: "ArcScan", url: "https://testnet.arcscan.app" },
   },
   testnet: true,
 });
 
 const config = createConfig({
   chains: [arcTestnet],
+  connectors: [
+    injected({ shimDisconnect: true }),
+  ],
   transports: {
     [arcTestnet.id]: http(),
   },

@@ -1,8 +1,8 @@
-# ArcMiner - Fake USDC Mining dApp
+# Arc Lottery Faucet - Spin to Win USDC
 
 ## Overview
 
-ArcMiner is a decentralized application (dApp) that simulates USDC mining on the Arc Testnet. Users connect their wallet, run a simulated mining process, and claim fake USDC tokens from a pre-deployed smart contract. The application provides a gamified mining experience with progress tracking, hash rate simulation, and claim history.
+Arc Lottery Faucet is a fun decentralized application (dApp) where users can spin a lottery wheel to win USDC on the Arc Testnet. Users connect their wallet, spin the colorful wheel, and claim their prize (200 USDC) from a pre-deployed smart contract. The application provides a gamified faucet experience with an animated spinning wheel and claim tracking.
 
 ## User Preferences
 
@@ -36,8 +36,8 @@ Preferred communication style: Simple, everyday language.
 - **Block Explorer**: https://testnet.arcscan.app
 
 ### Key Design Decisions
-1. **Simulated Mining**: Mining is purely visual/frontend - actual tokens come from faucet contract claims
-2. **Linear Reward Progress**: USDC reward increases linearly from 0 to 200 over exactly 10 minutes
+1. **Lottery Wheel**: The spinning wheel provides a fun visual experience - users spin to win 200 USDC
+2. **Fixed Prize Amount**: All wheel segments award 200 USDC to match the smart contract's fixed payout
 3. **Real-time Claim History**: Fetched from Arcscan API every 30 seconds, filtering 200 USDC transfers
 4. **Pre-deployed Contract**: The smart contract should NOT be redeployed - only frontend integration
 

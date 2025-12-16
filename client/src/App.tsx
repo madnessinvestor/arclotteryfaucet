@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useChainId } from "wagmi";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { injected } from "wagmi/connectors";
@@ -11,14 +11,15 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Wallet, Zap, AlertCircle, Terminal, Cpu, Play, Pause, Square, Banknote, DollarSign, Monitor, AlertTriangle, Link, Clock, TrendingUp } from "lucide-react";
+import { Wallet, Gift, AlertCircle, DollarSign, AlertTriangle, Link, Clock, TrendingUp, Sparkles, Trophy, Coins, PartyPopper } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUnits } from "viem";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { SiX, SiGithub, SiYoutube, SiInstagram, SiTelegram, SiDiscord } from "react-icons/si";
+import { SiX, SiGithub, SiTelegram, SiDiscord } from "react-icons/si";
+import { LotteryWheel, type Prize } from "./components/LotteryWheel";
 
 const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
-const MAX_CLAIM_LIMIT = BigInt(2000 * 1000000); // 2000 USDC with 6 decimals
+const MAX_CLAIM_LIMIT = BigInt(2000 * 1000000);
 const ARC_TESTNET_CHAIN_ID = 5042002;
 
 const formatUSDC = (value: bigint | undefined) => {
@@ -32,13 +33,6 @@ const formatTime = (ms: number) => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-interface MiningLog {
-  id: number;
-  timestamp: string;
-  type: 'block' | 'share' | 'info' | 'reward';
-  message: string;
-}
-
 export default function App() {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
@@ -49,39 +43,21 @@ export default function App() {
   const { writeContract, data: hash, error: writeError } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
-  const [miningState, setMiningState] = useState<'idle' | 'mining' | 'paused' | 'completed'>('idle');
-  const [progress, setProgress] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(600000);
-  const [hashRate, setHashRate] = useState(0);
-  const [pausedProgress, setPausedProgress] = useState(0);
-  const [pausedTimeLeft, setPausedTimeLeft] = useState(0);
-  const [showStopWarning, setShowStopWarning] = useState(false);
-  
-  const [cpuEnabled, setCpuEnabled] = useState(true);
-  const [gpuEnabled, setGpuEnabled] = useState(false);
-  
-  const [miningLogs, setMiningLogs] = useState<MiningLog[]>([]);
-  const [blocksFound, setBlocksFound] = useState(0);
-  const [sharesFound, setSharesFound] = useState(0);
-  const [canFindShares, setCanFindShares] = useState(false);
-  const [displayedReward, setDisplayedReward] = useState(0);
-  const logIdRef = useRef(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const isOnArcNetwork = currentChainId === ARC_TESTNET_CHAIN_ID;
-  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
-  
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [wonPrize, setWonPrize] = useState<Prize | null>(null);
+  const [showWinDialog, setShowWinDialog] = useState(false);
   const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
   const [isOnCooldown, setIsOnCooldown] = useState(false);
 
-  // Auto-connect wallet on load
+  const isOnArcNetwork = currentChainId === ARC_TESTNET_CHAIN_ID;
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+
   useEffect(() => {
     if (!isConnected) {
       connect({ connector: injected() });
     }
   }, [connect, isConnected]);
 
-  // Auto-switch to Arc Testnet when connected but on wrong network
   useEffect(() => {
     const switchToArcNetwork = async () => {
       if (isConnected && currentChainId !== ARC_TESTNET_CHAIN_ID && !isSwitchingNetwork) {
@@ -174,196 +150,11 @@ export default function App() {
 
   const totalClaimed = claimData ? (claimData as any)[0] : BigInt(0);
   const remainingAllowance = claimData ? (claimData as any)[1] : BigInt(0);
-  
-  // Check if wallet has reached the 2000 USDC limit
   const hasReachedLimit = totalClaimed >= MAX_CLAIM_LIMIT;
 
-  const getHashRateRange = () => {
-    if (cpuEnabled && gpuEnabled) {
-      return { min: 400, max: 700 };
-    } else if (gpuEnabled) {
-      return { min: 300, max: 500 };
-    } else if (cpuEnabled) {
-      return { min: 100, max: 200 };
-    }
-    return { min: 0, max: 0 };
-  };
-
-  const addLog = (type: MiningLog['type'], message: string) => {
-    const now = new Date();
-    const timestamp = now.toLocaleTimeString('en-US', { hour12: false });
-    logIdRef.current += 1;
-    const newLog: MiningLog = {
-      id: logIdRef.current,
-      timestamp,
-      type,
-      message,
-    };
-    setMiningLogs(prev => [...prev.slice(-50), newLog]);
-  };
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [miningLogs]);
-
-  useEffect(() => {
-    if (miningState === 'mining') {
-      const startTime = Date.now();
-      const initialProgress = pausedProgress;
-      const remainingTime = pausedTimeLeft || 600000;
-      const endTime = startTime + remainingTime;
-      const range = getHashRateRange();
-
-      if (miningLogs.length === 0 || pausedProgress === 0) {
-        addLog('info', 'Connecting to Arc Testnet Node...');
-        addLog('info', 'Connection established successfully');
-        addLog('info', `Mining started with ${cpuEnabled ? 'CPU' : ''}${cpuEnabled && gpuEnabled ? ' + ' : ''}${gpuEnabled ? 'GPU' : ''}`);
-      }
-
-      const timer = setInterval(() => {
-        const now = Date.now();
-        const remaining = Math.max(0, endTime - now);
-        const elapsed = remainingTime - remaining;
-        const additionalProgress = (elapsed / 600000) * 100;
-        const p = Math.min(100, initialProgress + additionalProgress);
-        
-        setTimeLeft(remaining);
-        setProgress(p);
-        
-        const totalElapsedTime = 600000 - remaining;
-        const newReward = Math.min(200, (totalElapsedTime / 600000) * 200);
-        setDisplayedReward(newReward);
-        
-        const newHashRate = range.min + Math.random() * (range.max - range.min);
-        setHashRate(newHashRate);
-
-        if (remaining <= 0) {
-          setMiningState('completed');
-          setProgress(100);
-          setDisplayedReward(200);
-          clearInterval(timer);
-          addLog('reward', 'Mining session completed! 200 USDC ready to claim');
-          toast({
-            title: "Mining Complete!",
-            description: "200 USDC ready to claim.",
-          });
-        }
-      }, 100);
-
-      const logTimer = setInterval(() => {
-        const rand = Math.random();
-        if (rand < 0.15) {
-          const blockHash = Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-          addLog('block', `Block found! Hash: 0x${blockHash}...`);
-          setBlocksFound(prev => prev + 1);
-          setCanFindShares(true);
-        } else if (rand < 0.45) {
-          setCanFindShares(prev => {
-            if (prev) {
-              const shareNum = Math.floor(Math.random() * 1000000);
-              addLog('share', `Share accepted #${shareNum.toString(16).toUpperCase()}`);
-              setSharesFound(prevShares => prevShares + 1);
-            }
-            return prev;
-          });
-        } else if (rand < 0.6) {
-          const range = getHashRateRange();
-          const hr = range.min + Math.random() * (range.max - range.min);
-          addLog('info', `Hashrate: ${hr.toFixed(2)} MH/s`);
-        }
-      }, 800);
-
-      return () => {
-        clearInterval(timer);
-        clearInterval(logTimer);
-      };
-    }
-  }, [miningState, pausedProgress, pausedTimeLeft, cpuEnabled, gpuEnabled]);
-
-  const startMining = () => {
-    if (!isOnArcNetwork) {
-      toast({
-        variant: "destructive",
-        title: "Wrong Network",
-        description: "Please switch to Arc Testnet to start mining.",
-      });
-      return;
-    }
-    if (hasReachedLimit) {
-      toast({
-        variant: "destructive",
-        title: "Limit Reached",
-        description: "Your wallet has reached the maximum claim limit of 2000 USDC.",
-      });
-      return;
-    }
-    if (isOnCooldown) {
-      toast({
-        variant: "destructive",
-        title: "Cooldown Active",
-        description: "Please wait for the cooldown timer to finish before starting a new mining session.",
-      });
-      return;
-    }
-    if (!cpuEnabled && !gpuEnabled) {
-      toast({
-        variant: "destructive",
-        title: "No Mining Device",
-        description: "Please enable CPU or GPU to start mining.",
-      });
-      return;
-    }
-    setMiningState('mining');
-    setTimeLeft(600000);
-    setProgress(0);
-    setDisplayedReward(0);
-    setPausedProgress(0);
-    setPausedTimeLeft(0);
-    setMiningLogs([]);
-    setBlocksFound(0);
-    setSharesFound(0);
-    setCanFindShares(false);
-  };
-
-  const pauseMining = () => {
-    setPausedProgress(progress);
-    setPausedTimeLeft(timeLeft);
-    setMiningState('paused');
-    addLog('info', 'Mining paused by user');
-  };
-
-  const continueMining = () => {
-    addLog('info', 'Mining resumed');
-    setMiningState('mining');
-  };
-
-  const openStopWarning = () => {
-    setShowStopWarning(true);
-  };
-
-  const confirmStop = () => {
-    setShowStopWarning(false);
-    setMiningState('idle');
-    setProgress(0);
-    setTimeLeft(600000);
-    setDisplayedReward(0);
-    setPausedProgress(0);
-    setPausedTimeLeft(0);
-    setMiningLogs([]);
-    setBlocksFound(0);
-    setSharesFound(0);
-    setCanFindShares(false);
-    toast({
-      variant: "destructive",
-      title: "Mining Stopped",
-      description: "All mined balance has been lost. Start again to mine.",
-    });
-  };
-
-  const cancelStopWarning = () => {
-    setShowStopWarning(false);
+  const handleSpinComplete = (prize: Prize) => {
+    setWonPrize(prize);
+    setShowWinDialog(true);
   };
 
   const handleClaim = () => {
@@ -386,7 +177,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isConfirmed && hash && address) {
+    if (isConfirmed && hash && address && wonPrize) {
       createClaimMutation.mutate({
         walletAddress: address,
         amount: "200.000000",
@@ -395,24 +186,17 @@ export default function App() {
 
       toast({
         title: "Claim Successful!",
-        description: "200 USDC has been sent to your wallet.",
+        description: `${wonPrize.value} USDC has been sent to your wallet.`,
       });
-      setMiningState('idle');
-      setDisplayedReward(0);
-      setProgress(0);
-      setPausedProgress(0);
-      setPausedTimeLeft(0);
-      setMiningLogs([]);
-      setCanFindShares(false);
-      setBlocksFound(0);
-      setSharesFound(0);
+      setShowWinDialog(false);
+      setWonPrize(null);
       setIsOnCooldown(true);
       setCooldownTimeLeft(600000);
       refetchClaimInfo();
       refetchBalance();
       refetchWalletBalance();
     }
-  }, [isConfirmed, hash, address]);
+  }, [isConfirmed, hash, address, wonPrize]);
 
   useEffect(() => {
     if (writeError) {
@@ -439,29 +223,23 @@ export default function App() {
     }
   }, [isOnCooldown, cooldownTimeLeft]);
 
-  const getLogColor = (type: MiningLog['type']) => {
-    switch (type) {
-      case 'block': return 'text-yellow-400';
-      case 'share': return 'text-green-400';
-      case 'reward': return 'text-cyan-400';
-      default: return 'text-muted-foreground';
-    }
-  };
+  const canSpin = isConnected && isOnArcNetwork && !hasReachedLimit && !isOnCooldown && !isSpinning;
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 md:p-8 font-mono relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
+    <div className="min-h-screen bg-background text-foreground p-4 md:p-8 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
       
       <div className="max-w-6xl mx-auto space-y-8 relative z-10">
         
         <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/40 pb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/50">
-              <Cpu className="w-6 h-6 text-primary animate-pulse" />
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center border border-primary/50 shadow-lg">
+              <Gift className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tighter" data-testid="text-app-title">ArcMiner</h1>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">Testnet Simulation POW</p>
+              <h1 className="text-2xl font-bold tracking-tight" data-testid="text-app-title">Arc Lottery Faucet</h1>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Spin to Win USDC</p>
             </div>
           </div>
           
@@ -469,7 +247,7 @@ export default function App() {
             {isConnected ? (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 bg-card border border-border rounded-md px-4 py-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   <div className="flex flex-col">
                     <span className="text-sm font-medium" data-testid="text-wallet-address">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
                     <Badge variant="outline" className="text-xs px-1 py-0 h-4 w-fit" data-testid="badge-network">Arc Testnet</Badge>
@@ -481,7 +259,7 @@ export default function App() {
                 {isOnArcNetwork && walletBalance !== undefined && (
                   <div className="flex flex-col items-end">
                     <span className="text-xs text-muted-foreground">My Balance</span>
-                    <span className="text-sm font-bold text-green-400 font-mono" data-testid="text-wallet-usdc-balance">
+                    <span className="text-sm font-bold text-green-500 font-mono" data-testid="text-wallet-usdc-balance">
                       {formatUSDC(walletBalance as bigint)} USDC
                     </span>
                   </div>
@@ -497,14 +275,25 @@ export default function App() {
 
         {!isConnected && (
           <div className="space-y-8">
-            <div className="h-[40vh] flex flex-col items-center justify-center text-center space-y-6">
-              <div className="w-24 h-24 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/50 shadow-[0_0_30px_rgba(124,58,237,0.3)]">
-                <Cpu className="w-12 h-12 text-primary" />
+            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-8">
+              <div className="relative">
+                <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center border border-primary/50 shadow-2xl">
+                  <Trophy className="w-14 h-14 text-primary-foreground" />
+                </div>
+                <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-pulse" />
               </div>
-              <div className="space-y-2 max-w-md">
-                <h2 className="text-3xl font-bold tracking-tighter">Welcome to ArcMiner</h2>
-                <p className="text-muted-foreground">Connect your wallet to start simulating mining operations on the Arc Testnet and earn USDC rewards.</p>
+              <div className="space-y-3 max-w-md">
+                <h2 className="text-4xl font-bold tracking-tight">Win Free USDC!</h2>
+                <p className="text-muted-foreground text-lg">Connect your wallet to spin the wheel and win USDC prizes on Arc Testnet.</p>
               </div>
+              <Button 
+                onClick={() => connect({ connector: injected() })} 
+                size="lg"
+                className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground px-8"
+                data-testid="button-connect-hero"
+              >
+                <Wallet className="w-5 h-5 mr-2" /> Connect Wallet to Play
+              </Button>
             </div>
 
             <Card className="bg-card/50 backdrop-blur-sm border-primary/20 max-w-2xl mx-auto">
@@ -523,10 +312,7 @@ export default function App() {
                         {totalClaimedData?.totalClaimed || "0.00"} USDC
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Total claimed by {totalClaimedData?.claimCount || 0} miners from the faucet
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono break-all mt-2">
-                        Faucet: {FAUCET_ADDRESS}
+                        Won by {totalClaimedData?.claimCount || 0} lucky players from the faucet
                       </p>
                     </div>
                   )}
@@ -542,20 +328,20 @@ export default function App() {
               <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Wallet className="w-4 h-4" /> Total Claimed
+                    <Trophy className="w-4 h-4" /> Total Won
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="text-3xl font-bold" data-testid="text-total-claimed">{formatUSDC(totalClaimed)} USDC</div>
                   <Progress value={Number(totalClaimed) / 20000} className="h-1 mt-3 bg-primary/10" />
-                  <p className="text-xs text-muted-foreground mt-2">Limit: 2,000.00 USDC</p>
+                  <p className="text-xs text-muted-foreground mt-2">Limit: 2,000.00 USDC per wallet</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Zap className="w-4 h-4" /> Allowance Remaining
+                    <Coins className="w-4 h-4" /> Remaining Allowance
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -568,24 +354,23 @@ export default function App() {
               <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" /> Contract Balance
+                    <DollarSign className="w-4 h-4" /> Prize Pool
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="text-3xl font-bold text-green-500" data-testid="text-contract-balance">{formatUSDC(contractBalance as bigint)} USDC</div>
                   <Progress value={100} className="h-1 mt-3 bg-primary/10 invisible" />
-                  <p className="text-xs text-muted-foreground mt-2">Available in Mining Pool</p>
+                  <p className="text-xs text-muted-foreground mt-2">Available to win</p>
                 </CardContent>
               </Card>
-
             </div>
 
             {hasReachedLimit && (
-              <Alert className="bg-red-500/10 border-red-500/50">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <AlertTitle className="text-red-500">Mining Disabled</AlertTitle>
-                <AlertDescription className="text-red-400">
-                  Your wallet has reached the maximum claim limit of 2,000 USDC. Mining is no longer available for this wallet.
+              <Alert className="bg-destructive/10 border-destructive/50">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <AlertTitle className="text-destructive">Limit Reached</AlertTitle>
+                <AlertDescription className="text-destructive/80">
+                  Your wallet has reached the maximum limit of 2,000 USDC. Spinning is no longer available for this wallet.
                 </AlertDescription>
               </Alert>
             )}
@@ -595,12 +380,13 @@ export default function App() {
                 <Link className="h-4 w-4 text-orange-500" />
                 <AlertTitle className="text-orange-500">Wrong Network</AlertTitle>
                 <AlertDescription className="text-orange-400">
-                  <p className="mb-2">You are not connected to Arc Testnet. Mining and claiming are only available on Arc Testnet.</p>
+                  <p className="mb-2">You are not connected to Arc Testnet. Spinning and claiming are only available on Arc Testnet.</p>
                   <Button 
-                    onClick={handleSwitchNetwork}
+                    onClick={handleSwitchNetwork} 
                     disabled={isSwitchingNetwork}
+                    variant="outline"
                     size="sm"
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500/10"
                     data-testid="button-switch-network"
                   >
                     {isSwitchingNetwork ? "Switching..." : "Switch to Arc Testnet"}
@@ -609,313 +395,109 @@ export default function App() {
               </Alert>
             )}
 
-            <Card className="border-primary/50 bg-black/40 backdrop-blur-md overflow-hidden relative">
-              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
-              
-              <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Terminal className="w-5 h-5 text-primary" />
-                      Mining Console v1.0.5
-                    </CardTitle>
-                    <CardDescription>
-                      Select your mining devices and start earning USDC rewards.
-                    </CardDescription>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={cpuEnabled ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCpuEnabled(!cpuEnabled)}
-                      disabled={miningState === 'mining' || miningState === 'paused'}
-                      className={`gap-2 ${cpuEnabled ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                      data-testid="button-toggle-cpu"
-                    >
-                      <Cpu className="w-4 h-4" />
-                      CPU
-                    </Button>
-                    <Button
-                      variant={gpuEnabled ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setGpuEnabled(!gpuEnabled)}
-                      disabled={miningState === 'mining' || miningState === 'paused'}
-                      className={`gap-2 ${gpuEnabled ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                      data-testid="button-toggle-gpu"
-                    >
-                      <Monitor className="w-4 h-4" />
-                      GPU
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-6 relative">
-                
-                <div 
-                  ref={scrollRef}
-                  className="h-48 rounded-lg border border-border bg-black/60 p-4 font-mono text-xs overflow-y-auto relative dark-scrollbar"
-                >
-                  {miningState === 'idle' && miningLogs.length === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center flex-col gap-4">
-                      <div className="w-16 h-16 rounded-full border-2 border-dashed border-muted-foreground animate-[spin_10s_linear_infinite]"></div>
-                      <p className="text-muted-foreground">System Idle. Ready to initialize.</p>
-                    </div>
-                  )}
-
-                  {miningState === 'paused' && (
-                    <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 bg-black/80">
-                      <Pause className="w-16 h-16 text-yellow-500" />
-                      <p className="text-yellow-500 font-bold">Mining Paused</p>
-                      <p className="text-muted-foreground text-center">Timer paused. Click Continue to resume.</p>
-                    </div>
-                  )}
-
-                  {miningState === 'completed' && (
-                    <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 bg-black/80">
-                      <Banknote className="w-16 h-16 text-green-500" />
-                      <p className="text-green-500 font-bold text-xl">200 USDC Ready!</p>
-                      <p className="text-muted-foreground text-center">Click Claim to receive your rewards.</p>
-                    </div>
-                  )}
-
-                  {miningLogs.length > 0 && miningState !== 'paused' && miningState !== 'completed' && (
-                    <div className="space-y-1">
-                      {miningState === 'mining' && (
-                        <div className="absolute inset-0 opacity-10 animate-scan bg-gradient-to-b from-transparent via-primary to-transparent h-[50%] w-full pointer-events-none"></div>
-                      )}
-                      {miningLogs.map((log) => (
-                        <p key={log.id} className={getLogColor(log.type)}>
-                          <span className="text-muted-foreground">[{log.timestamp}]</span> {log.message}
-                        </p>
-                      ))}
-                      {miningState === 'mining' && <p className="text-green-500 animate-pulse">_</p>}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div className="bg-black/40 rounded-md p-3 border border-border">
-                    <p className="text-xs text-muted-foreground">Hashrate</p>
-                    <p className="text-lg font-bold text-primary" data-testid="text-hashrate">
-                      {miningState === 'mining' ? hashRate.toFixed(2) : '0.00'} MH/s
-                    </p>
-                  </div>
-                  <div className="bg-black/40 rounded-md p-3 border border-border">
-                    <p className="text-xs text-muted-foreground">Shares Found</p>
-                    <p className="text-lg font-bold text-green-500" data-testid="text-shares">{sharesFound}</p>
-                  </div>
-                  <div className="bg-black/40 rounded-md p-3 border border-border">
-                    <p className="text-xs text-muted-foreground">Blocks Found</p>
-                    <p className="text-lg font-bold text-yellow-500" data-testid="text-blocks">{blocksFound}</p>
-                  </div>
-                  <div className="bg-black/40 rounded-md p-3 border border-border">
-                    <p className="text-xs text-muted-foreground">Pending Reward</p>
-                    <p className="text-lg font-bold text-cyan-400" data-testid="text-pending-reward">{displayedReward.toFixed(2)} USDC</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Session Progress</span>
-                    <div className="flex gap-4">
-                      <span className="text-primary font-bold">{displayedReward.toFixed(2)} / 200.00 USDC</span>
-                      <span className="font-bold">{Math.round(progress)}%</span>
-                    </div>
-                  </div>
-                  <Progress value={progress} className="h-3 bg-secondary" />
-                  
-                  <div className="flex justify-between items-center pt-4 flex-wrap gap-2">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Time Remaining: </span>
-                      <span className="font-bold font-mono">{formatTime(timeLeft)}</span>
-                    </div>
-
-                    {miningState === 'idle' && (
-                      <Button 
-                        onClick={startMining} 
-                        disabled={!isOnArcNetwork || hasReachedLimit || isOnCooldown || (!cpuEnabled && !gpuEnabled)}
-                        className="w-48 bg-primary hover:bg-primary/90"
-                        data-testid="button-start-mining"
-                      >
-                        <Play className="w-4 h-4 mr-2" /> Start Mining
-                      </Button>
-                    )}
-
-                    {miningState === 'mining' && (
-                      <div className="flex gap-2 flex-wrap">
-                        <Button 
-                          onClick={pauseMining}
-                          variant="secondary"
-                          data-testid="button-pause-mining"
-                        >
-                          <Pause className="w-4 h-4 mr-2" /> Pause Mining
-                        </Button>
-                        <Button 
-                          onClick={openStopWarning}
-                          variant="destructive"
-                          data-testid="button-stop-mining"
-                        >
-                          <Square className="w-4 h-4 mr-2" /> Stop Mining
-                        </Button>
-                      </div>
-                    )}
-
-                    {miningState === 'paused' && (
-                      <div className="flex gap-2 flex-wrap">
-                        <Button 
-                          onClick={continueMining}
-                          className="bg-primary hover:bg-primary/90"
-                          data-testid="button-continue-mining"
-                        >
-                          <Play className="w-4 h-4 mr-2" /> Continue Mining
-                        </Button>
-                        <Button 
-                          onClick={openStopWarning}
-                          variant="destructive"
-                          data-testid="button-stop-mining-paused"
-                        >
-                          <Square className="w-4 h-4 mr-2" /> Stop Mining
-                        </Button>
-                      </div>
-                    )}
-
-                    {miningState === 'completed' && (
-                      <Button 
-                        onClick={handleClaim} 
-                        disabled={!isOnArcNetwork || isConfirming}
-                        className="w-48 bg-green-600 hover:bg-green-700 text-white"
-                        data-testid="button-claim"
-                      >
-                        {isConfirming ? (
-                          <>Confirming...</>
-                        ) : (
-                          <><Banknote className="w-4 h-4 mr-2" /> Claim 200 USDC</>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Alert className="bg-primary/5 border-primary/20">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertTitle>System Rules</AlertTitle>
-                <AlertDescription className="text-xs text-muted-foreground space-y-1 mt-2">
-                  <p>Each mining session lasts 10 minutes.</p>
-                  <p>Complete session reward: 200 USDC.</p>
-                  <p>Each wallet can receive up to 2,000 USDC total.</p>
-                  <p>Pausing the mining also pauses the timer.</p>
-                  <p className="text-red-400 font-semibold">Stopping the mining will reset all mined balance!</p>
-                  <p className="break-all mt-2">Contract: {FAUCET_ADDRESS}</p>
+            {isOnCooldown && (
+              <Alert className="bg-blue-500/10 border-blue-500/50">
+                <Clock className="h-4 w-4 text-blue-500" />
+                <AlertTitle className="text-blue-500">Cooldown Active</AlertTitle>
+                <AlertDescription className="text-blue-400">
+                  Wait {formatTime(cooldownTimeLeft)} before your next spin.
                 </AlertDescription>
               </Alert>
+            )}
 
-              <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" /> Total Distributed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-4">
-                    {isLoadingTotalClaimed ? (
-                      <p className="text-xs text-muted-foreground">Loading...</p>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="text-4xl font-bold text-green-500" data-testid="text-total-distributed">
-                          {totalClaimedData?.totalClaimed || "0.00"} USDC
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Total claimed by {totalClaimedData?.claimCount || 0} miners from the faucet
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
+            <div className="flex flex-col items-center py-8">
+              <Card className="bg-card/50 backdrop-blur-sm border-primary/20 p-8 w-full max-w-lg">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold mb-2">Spin to Win!</h2>
+                  <p className="text-muted-foreground text-sm">Try your luck and win USDC prizes instantly</p>
+                </div>
+                
+                <LotteryWheel 
+                  onSpinComplete={handleSpinComplete}
+                  disabled={!canSpin}
+                  isSpinning={isSpinning}
+                  setIsSpinning={setIsSpinning}
+                />
+
+                {!canSpin && !isSpinning && (
+                  <p className="text-center text-sm text-muted-foreground mt-6">
+                    {!isOnArcNetwork && "Switch to Arc Testnet to play"}
+                    {hasReachedLimit && "Wallet limit reached"}
+                    {isOnCooldown && `Wait ${formatTime(cooldownTimeLeft)} to spin again`}
+                  </p>
+                )}
               </Card>
             </div>
-
           </>
         )}
 
-        <footer className="border-t border-border/40 pt-6 pb-4">
-          <div className="text-center space-y-4">
-            <p className="text-lg font-bold">ArcMiner</p>
-            <div className="flex items-center justify-center gap-4">
-              <a href="https://x.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-x">
+        <footer className="border-t border-border/40 pt-6 mt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Gift className="w-4 h-4" />
+              <span>Arc Lottery Faucet - Testnet Only</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <a href="https://x.com/ArcNetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-twitter">
                 <SiX className="w-5 h-5" />
               </a>
-              <a href="https://github.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-github">
-                <SiGithub className="w-5 h-5" />
-              </a>
-              <a href="https://www.youtube.com/@madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-youtube">
-                <SiYoutube className="w-5 h-5" />
-              </a>
-              <a href="https://farcaster.xyz/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-farcaster">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.24 0.24H5.76C2.58 0.24 0 2.82 0 6v12c0 3.18 2.58 5.76 5.76 5.76h12.48c3.18 0 5.76-2.58 5.76-5.76V6c0-3.18-2.58-5.76-5.76-5.76zM19.52 18c0 0.85-0.69 1.54-1.54 1.54H6.02c-0.85 0-1.54-0.69-1.54-1.54V6c0-0.85 0.69-1.54 1.54-1.54h11.96c0.85 0 1.54 0.69 1.54 1.54v12z"/>
-                  <path d="M8.25 7.5L6 10.5v6h3V12h1.5v4.5H12v-6L9.75 7.5h-1.5zM15.75 7.5L13.5 10.5v6h3V12H18v4.5h1.5v-6L17.25 7.5h-1.5z"/>
-                </svg>
-              </a>
-              <a href="https://www.instagram.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-instagram">
-                <SiInstagram className="w-5 h-5" />
-              </a>
-              <a href="https://web.telegram.org/k/#@madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-telegram">
-                <SiTelegram className="w-5 h-5" />
-              </a>
-              <a href="https://discord.com/users/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-discord">
+              <a href="https://discord.gg/arcnetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-discord">
                 <SiDiscord className="w-5 h-5" />
               </a>
+              <a href="https://t.me/arcnetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-telegram">
+                <SiTelegram className="w-5 h-5" />
+              </a>
+              <a href="https://github.com/arcnetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-github">
+                <SiGithub className="w-5 h-5" />
+              </a>
             </div>
-            <p className="text-xs text-muted-foreground">2025 ArcMiner - Built on Arc Network. All rights reserved.</p>
+          </div>
+          <div className="text-center mt-4">
+            <p className="text-xs text-muted-foreground">
+              Faucet Contract: <span className="font-mono">{FAUCET_ADDRESS}</span>
+            </p>
           </div>
         </footer>
       </div>
 
-      <Dialog open={showStopWarning} onOpenChange={setShowStopWarning}>
-        <DialogContent data-testid="dialog-stop-warning" className="border-red-500/50">
+      <Dialog open={showWinDialog} onOpenChange={setShowWinDialog}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-500">
-              <AlertTriangle className="w-5 h-5" />
-              Warning: Stop Mining
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+              <PartyPopper className="w-6 h-6 text-yellow-500" />
+              Congratulations!
             </DialogTitle>
-            <DialogDescription className="text-red-400">
-              Are you sure you want to stop mining?
+            <DialogDescription className="text-lg pt-4">
+              You won <span className="font-bold text-green-500 text-2xl">{wonPrize?.value} USDC</span>!
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Alert className="bg-red-500/10 border-red-500/50">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              <AlertTitle className="text-red-500">You will lose all mined balance!</AlertTitle>
-              <AlertDescription className="text-red-400 mt-2">
-                <p>Current mined: <span className="font-bold">{displayedReward.toFixed(2)} USDC</span></p>
-                <p>Progress: <span className="font-bold">{Math.round(progress)}%</span></p>
-                <p className="mt-2">If you stop now, you will need to start from zero and mine for 10 minutes again to earn 200 USDC.</p>
-              </AlertDescription>
-            </Alert>
+          <div className="flex flex-col items-center py-6">
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: wonPrize?.color }}>
+              <Trophy className="w-12 h-12 text-white" />
+            </div>
+            <p className="text-muted-foreground text-center">
+              Click the button below to claim your prize to your wallet.
+            </p>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              onClick={cancelStopWarning}
-              variant="outline"
-              className="w-full sm:w-auto"
-              data-testid="button-cancel-stop"
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button 
+              onClick={handleClaim} 
+              disabled={isConfirming}
+              className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
+              data-testid="button-claim"
+            >
+              {isConfirming ? "Claiming..." : `Claim ${wonPrize?.value} USDC`}
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                setShowWinDialog(false);
+                setWonPrize(null);
+              }}
+              className="w-full"
+              data-testid="button-cancel-claim"
             >
               Cancel
-            </Button>
-            <Button
-              onClick={confirmStop}
-              variant="destructive"
-              className="w-full sm:w-auto"
-              data-testid="button-confirm-stop"
-            >
-              <Square className="w-4 h-4 mr-2" />
-              Yes, Stop Mining
             </Button>
           </DialogFooter>
         </DialogContent>

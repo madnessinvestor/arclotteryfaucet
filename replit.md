@@ -1,8 +1,8 @@
-# Arc Lottery Faucet - Spin to Win USDC
+# Arc Spin Lottery - Web3 Lottery Game
 
 ## Overview
 
-Arc Lottery Faucet is a fun decentralized application (dApp) where users can spin a lottery wheel to win USDC on the Arc Testnet. Users connect their wallet, spin the colorful wheel, and claim their prize (200 USDC) from a pre-deployed smart contract. The application provides a gamified faucet experience with an animated spinning wheel and claim tracking.
+Arc Spin Lottery is a Web3 lottery game running on Arc Testnet where users can spin a wheel to win USDC prizes. Users connect their wallet, spin the colorful animated wheel, and win prizes determined by the smart contract. The frontend never calculates rewards - the contract is the single source of truth.
 
 ## User Preferences
 
@@ -12,55 +12,66 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Architecture
 - **Framework**: React with TypeScript, built using Vite
-- **Styling**: Tailwind CSS with shadcn/ui component library (New York style)
-- **State Management**: React Query for server state, React hooks for local state
-- **Web3 Integration**: wagmi + viem for wallet connection and blockchain interactions
+- **Styling**: Tailwind CSS with shadcn/ui component library
+- **State Management**: React hooks for local state
+- **Web3 Integration**: ethers.js for wallet connection and blockchain interactions
 
 ### Backend Architecture
 - **Server**: Express.js running on Node.js
 - **API Pattern**: RESTful endpoints under `/api/*`
 - **Development**: Hot module replacement via Vite middleware
-- **Production**: Static file serving from built assets
-
-### Data Storage
-- **Schema Definition**: Drizzle ORM with PostgreSQL dialect
-- **Current Storage**: In-memory storage (MemStorage class) for development
-- **Database Ready**: Schema defined for PostgreSQL migration when needed
-- **Main Entity**: `claim_history` table tracking wallet claims with amounts and transaction hashes
 
 ### Blockchain Integration
 - **Network**: Arc Testnet (Chain ID: 5042002, RPC: https://rpc.testnet.arc.network)
-- **Faucet Contract**: `0xBd736A5D744A6364dd74B12Bb679d66360d7AeD9`
+- **Spin Contract**: `0xdB19da3BC195e32685136a63a3B014F74929dE64`
 - **USDC Token**: `0x3600000000000000000000000000000000000000`
-- **Wallet Connection**: MetaMask via injected connector
+- **Wallet Support**: MetaMask and Rabby (via window.ethereum)
 - **Block Explorer**: https://testnet.arcscan.app
 
+### Contract ABI
+```
+- function spin(uint256 random) - Spin the wheel with a random number
+- function spinsUsedToday(address user) view returns (uint256) - Get spins used today
+- event SpinResult(address indexed user, uint256 reward) - Event emitted after spin
+```
+
 ### Key Design Decisions
-1. **Lottery Wheel**: The spinning wheel provides a fun visual experience - users spin to win 200 USDC
-2. **Fixed Prize Amount**: All wheel segments award 200 USDC to match the smart contract's fixed payout
-3. **Real-time Claim History**: Fetched from Arcscan API every 30 seconds, filtering 200 USDC transfers
-4. **Pre-deployed Contract**: The smart contract should NOT be redeployed - only frontend integration
+1. **5 Spins Per Day**: Users are limited to 5 spins per wallet per 24 hours
+2. **Contract-Determined Rewards**: The wheel animation stops on the prize returned by the contract's SpinResult event
+3. **Network Auto-Switch**: App automatically prompts users to switch to Arc Testnet
+4. **Dark Casino Theme**: Modern Web3 casino aesthetic with neon accents
+
+### Prize Pool
+- 1000 USDC (2% chance)
+- 200 USDC (3% chance)
+- 100 USDC (10% chance)
+- 20 USDC (~5% chance)
+- 10 USDC (10% chance)
+- 5 USDC (20% chance)
+- Nothing (remaining %)
+
+## Spin Flow
+1. User clicks SPIN button
+2. Generate random number using crypto.getRandomValues
+3. Call spin(random) on the contract
+4. Wallet opens for transaction confirmation
+5. Wait for transaction confirmation
+6. Parse SpinResult event to get the reward
+7. Animate wheel to stop on the correct prize
+8. Update USDC balance and spins counter
 
 ## External Dependencies
 
 ### Blockchain/Web3
-- **wagmi**: React hooks for Ethereum wallet interactions
-- **viem**: Low-level Ethereum client library
+- **ethers**: Ethereum library for wallet and contract interactions
 - **Arc Testnet RPC**: `https://rpc.testnet.arc.network`
 
 ### UI Components
 - **shadcn/ui**: Full component library with Radix UI primitives
 - **Tailwind CSS v4**: Utility-first CSS framework
 - **Lucide React**: Icon library
-
-### Backend Services
-- **PostgreSQL**: Database (via Drizzle ORM when provisioned)
-- **connect-pg-simple**: Session storage for PostgreSQL
+- **react-icons**: Social media icons
 
 ### Development Tools
 - **Vite**: Build tool and dev server
-- **Drizzle Kit**: Database migrations (`npm run db:push`)
 - **tsx**: TypeScript execution for server
-
-### Environment Variables Required
-- `DATABASE_URL`: PostgreSQL connection string (required for database features)

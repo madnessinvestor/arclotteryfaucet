@@ -23,7 +23,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Blockchain Integration
 - **Network**: Arc Testnet (Chain ID: 5042002, RPC: https://rpc.testnet.arc.network)
-- **Spin Contract**: `0xdB19da3BC195e32685136a63a3B014F74929dE64`
+- **Spin Contract**: `0x966Be382F76D399B4a75F9c0cADdCB58Bd7A58BF`
 - **USDC Token**: `0x3600000000000000000000000000000000000000`
 - **Wallet Support**: MetaMask and Rabby (via window.ethereum)
 - **Block Explorer**: https://testnet.arcscan.app
@@ -31,23 +31,26 @@ Preferred communication style: Simple, everyday language.
 ### Contract ABI
 ```
 - function spin(uint256 random) - Spin the wheel with a random number
-- function spinsUsedToday(address user) view returns (uint256) - Get spins used today
-- event SpinResult(address indexed user, uint256 reward) - Event emitted after spin
+- function spinsLeft(address user) view returns (uint256) - Get remaining spins for user
+- function nextReset(address user) view returns (uint256) - Get timestamp when spins reset
+- event SpinPlayed(address indexed player, uint256 reward, uint256 random) - Event emitted after spin
 ```
 
 ### Key Design Decisions
-1. **5 Spins Per Day**: Users are limited to 5 spins per wallet per 24 hours
-2. **Contract-Determined Rewards**: The wheel animation stops on the prize returned by the contract's SpinResult event
+1. **20 Spins Per Day**: Users are limited to 20 spins per wallet per 24 hours
+2. **Contract-Determined Rewards**: The wheel animation stops on the prize returned by the contract's SpinPlayed event
 3. **Network Auto-Switch**: App automatically prompts users to switch to Arc Testnet
 4. **Dark Casino Theme**: Modern Web3 casino aesthetic with neon accents
+5. **Liquidity Guard**: Spin disabled if contract balance < 1000 USDC
 
 ### Prize Pool
 - 1000 USDC (2% chance)
 - 200 USDC (3% chance)
 - 100 USDC (10% chance)
+- 50 USDC (5% chance)
 - 20 USDC (~5% chance)
 - 10 USDC (10% chance)
-- 5 USDC (20% chance)
+- 5 USDC (15% chance)
 - Nothing (remaining %)
 
 ## Spin Flow
@@ -56,23 +59,26 @@ Preferred communication style: Simple, everyday language.
 3. Call spin(random) on the contract
 4. Wallet opens for transaction confirmation
 5. Wait for transaction confirmation
-6. Parse SpinResult event to get the reward
-7. Animate wheel to stop on the correct prize
-8. Show congratulations modal with prize amount and claim button
-9. User clicks Claim to receive USDC in their wallet
+6. Parse SpinPlayed event to get the reward
+7. Animate wheel for ~10 seconds
+8. Stop exactly at the reward returned by the event
+9. Show congratulations modal with prize amount
 10. Update USDC balance and spins counter
 
-## Claim Flow
-1. When user wins a prize, pendingRewards is updated in the contract
-2. User clicks "Claim" button in the win modal or on the main screen
-3. claimReward() is called on the contract
-4. USDC is transferred to user's wallet
-5. UI updates to show new balance
-
 ## Daily Spin Limit
-- Users are limited to 5 spins per 24 hours
-- When limit is reached, a countdown timer shows time until next spins are available
-- Timer updates every second and refreshes spins count when it reaches zero
+- Users are limited to 20 spins per 24 hours
+- Read spinsLeft(user) from contract
+- Display "Spins left today: X / 20"
+- When limit is reached:
+  - Read nextReset(user) for countdown
+  - Show countdown timer (HH:MM:SS)
+  - Enable SPIN again only after reset
+
+## Balance Check
+- Read contract USDC balance
+- If contract balance < 1000 USDC:
+  - Disable SPIN button
+  - Show message: "Spin temporarily disabled due to low liquidity"
 
 ## External Dependencies
 

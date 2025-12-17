@@ -47,7 +47,7 @@ export default function App() {
   const checkNetwork = useCallback(async () => {
     if (!window.ethereum) return false;
     try {
-      const chainId = await window.ethereum.request({ method: "eth_chainId" });
+      const chainId = await window.ethereum.request({ method: "eth_chainId" }) as string;
       const isArc = parseInt(chainId, 16) === ARC_TESTNET.chainId;
       setIsOnArcNetwork(isArc);
       return isArc;
@@ -261,7 +261,8 @@ export default function App() {
   useEffect(() => {
     if (!window.ethereum) return;
 
-    const handleAccountsChanged = (accounts: string[]) => {
+    const handleAccountsChanged = (...args: unknown[]) => {
+      const accounts = args[0] as string[];
       if (accounts.length === 0) {
         disconnectWallet();
       } else {

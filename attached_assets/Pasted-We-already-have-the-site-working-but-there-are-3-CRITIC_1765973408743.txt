@@ -1,0 +1,104 @@
+We already have the site working, but there are 3 CRITICAL issues that must be fixed to be fully aligned with the smart contract and Arc Testnet.
+
+CONTRACT (SOURCE OF TRUTH)
+- Network: Arc Testnet
+- Chain ID (decimal): 5042002
+- Chain ID (hex): 0x4CFB32
+- RPC: https://rpc.testnet.arc.network
+- Explorer: https://testnet.arcscan.app
+- Spin contract address:
+  0xdB19da3BC195e32685136a63a3B014F74929dE64
+
+The frontend MUST strictly follow the contract behavior.
+
+========================================
+1) AUTOMATIC NETWORK SWITCH (MANDATORY)
+========================================
+
+Current problem:
+- When connecting the wallet, the user must manually switch to Arc Testnet.
+
+Required fix:
+- On wallet connection, automatically:
+  1) Check the current chainId
+  2) If NOT Arc Testnet, call wallet_switchEthereumChain
+  3) If the network is not added, fallback to wallet_addEthereumChain
+
+Use these exact parameters:
+
+Chain ID (hex): 0x4CFB32
+Chain Name: Arc Testnet
+RPC URL: https://rpc.testnet.arc.network
+Native Currency:
+  name: USDC
+  symbol: USDC
+  decimals: 6
+Block Explorer: https://testnet.arcscan.app
+
+This must work for MetaMask and Rabby.
+
+========================================
+2) DAILY SPIN LIMIT + COUNTDOWN TIMER
+========================================
+
+Rules (from contract logic):
+- Each wallet can do a maximum of 5 spins per 24 hours.
+
+Current problem:
+- The site does not show how much time is left.
+- The SPIN button is still active.
+
+Required fix:
+- Read from the contract (on-chain) how many spins the connected wallet has already used.
+- If spinsUsed >= 5:
+  - Disable the SPIN button
+  - Show a countdown timer (HH:MM:SS)
+  - Timer must be based on the LAST SPIN TIMESTAMP stored in the contract
+  - Countdown resets exactly after 24 hours
+- When the timer reaches zero:
+  - Re-enable the SPIN button automatically
+
+IMPORTANT:
+- The timer MUST be derived from contract data, NOT localStorage.
+- No frontend-based timers without on-chain reference.
+
+========================================
+3) SPIN RESULT MUST MATCH THE CONTRACT (CRITICAL)
+========================================
+
+Current problem:
+- The wheel animation result does NOT always match the on-chain result.
+
+This is NOT acceptable.
+
+Required fix:
+- The smart contract result is the ONLY source of truth.
+- The frontend must NOT decide or simulate the reward.
+
+Correct flow:
+1) User clicks SPIN
+2) Frontend calls the spin function on the contract
+3) Wait for transaction confirmation
+4) Read the event emitted by the contract (reward / outcome)
+5) Map the returned reward to the correct wheel segment
+6) Animate the wheel and STOP exactly on that segment
+
+Rules:
+- The wheel animation is ONLY visual
+- The contract decides the outcome
+- The UI must always reflect the on-chain result
+
+========================================
+GENERAL REQUIREMENTS
+========================================
+
+- Use ethers.js
+- No backend
+- No local random deciding outcomes
+- Always sync state from the blockchain
+- Code must be clean and well organized
+- Keep existing UI/animations, only fix logic and synchronization
+
+Goal:
+The site must behave exactly like a real on-chain casino game:
+wallet → contract → result → animation → UI update

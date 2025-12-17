@@ -15,7 +15,8 @@ import {
   ARC_TESTNET, 
   SPIN_CONTRACT_ABI, 
   USDC_ABI, 
-  MAX_SPINS_PER_DAY 
+  MAX_SPINS_PER_DAY,
+  MIN_CONTRACT_BALANCE
 } from "./config";
 import { SiX, SiGithub, SiTelegram, SiDiscord } from "react-icons/si";
 
@@ -33,7 +34,8 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [isOnArcNetwork, setIsOnArcNetwork] = useState(false);
   const [walletBalance, setWalletBalance] = useState<bigint | undefined>();
-  const [spinsUsedToday, setSpinsUsedToday] = useState<number | null>(null);
+  const [spinsLeft, setSpinsLeft] = useState<number | null>(null);
+  const [nextResetTime, setNextResetTime] = useState<number>(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
@@ -42,19 +44,16 @@ export default function App() {
   const [showWinDialog, setShowWinDialog] = useState(false);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [contractBalance, setContractBalance] = useState<string>("0.00");
-  const [pendingReward, setPendingReward] = useState<bigint>(BigInt(0));
-  const [isClaiming, setIsClaiming] = useState(false);
+  const [contractBalanceRaw, setContractBalanceRaw] = useState<number>(0);
   const [lastWinAmount, setLastWinAmount] = useState<number>(0);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
-  const [lastSpinTimestamp, setLastSpinTimestamp] = useState<number>(0);
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
   const [isLoadingSpins, setIsLoadingSpins] = useState(false);
   const [spinsError, setSpinsError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLowLiquidity, setIsLowLiquidity] = useState(false);
 
   const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl, undefined, { staticNetwork: true }), []);
-  
-  const spinsLeft = spinsUsedToday !== null ? MAX_SPINS_PER_DAY - spinsUsedToday : null;
 
   const checkNetwork = useCallback(async () => {
     if (!window.ethereum) return false;
@@ -79,7 +78,7 @@ export default function App() {
     }
   }, [provider, address, isOnArcNetwork]);
 
-  const fetchSpinsUsed = useCallback(async () => {
+  const fetchSpinsLeft = useCallback(async () => {
     if (!address) return;
     setIsLoadingSpins(true);
     setSpinsError(null);
@@ -89,13 +88,13 @@ export default function App() {
         setTimeout(() => reject(new Error("Timeout")), 15000)
       );
       const spins = await Promise.race([
-        contract.spinsUsedToday(address),
+        contract.spinsLeft(address),
         timeoutPromise
       ]) as bigint;
-      setSpinsUsedToday(Number(spins));
+      setSpinsLeft(Number(spins));
       setSpinsError(null);
     } catch (error) {
-      console.error("Error fetching spins used:", error);
+      console.error("Error fetching spins left:", error);
       setSpinsError("Failed to load spins from contract");
     } finally {
       setIsLoadingSpins(false);
@@ -104,57 +103,31 @@ export default function App() {
 
   const fetchContractBalance = useCallback(async () => {
     try {
-      const response = await fetch("/api/contract-balance", {
-        headers: { "Cache-Control": "no-cache" }
-      });
-      if (response.status !== 200 && response.status !== 304) {
-        console.warn("Contract balance request failed:", response.status);
-        return;
-      }
-      const text = await response.text();
-      if (!text || text.startsWith("<!DOCTYPE") || text.startsWith("<")) {
-        console.warn("Contract balance response is HTML, not JSON");
-        return;
-      }
-      try {
-        const data = JSON.parse(text);
-        if (data && data.balance) {
-          setContractBalance(data.balance);
-        }
-      } catch (parseError) {
-        console.warn("Failed to parse contract balance JSON:", parseError);
-      }
+      const contract = new Contract(USDC_ADDRESS, USDC_ABI, arcReadProvider);
+      const balance = await contract.balanceOf(SPIN_CONTRACT_ADDRESS);
+      const balanceNumber = parseFloat(formatUnits(balance, 6));
+      setContractBalanceRaw(balanceNumber);
+      setContractBalance(balanceNumber.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      setIsLowLiquidity(balanceNumber < MIN_CONTRACT_BALANCE);
     } catch (error) {
       console.error("Error fetching contract balance:", error);
     }
-  }, []);
+  }, [arcReadProvider]);
 
-  const fetchPendingReward = useCallback(async () => {
-    if (!address) return;
-    try {
-      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
-      const pending = await contract.pendingRewards(address);
-      setPendingReward(pending);
-    } catch (error) {
-      console.error("Error fetching pending rewards:", error);
-      setPendingReward(BigInt(0));
-    }
-  }, [address, arcReadProvider]);
-
-  const fetchLastSpinTimestamp = useCallback(async () => {
+  const fetchNextReset = useCallback(async () => {
     if (!address) return;
     try {
       const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Timeout")), 15000)
       );
-      const timestamp = await Promise.race([
-        contract.lastSpinTimestamp(address),
+      const resetTime = await Promise.race([
+        contract.nextReset(address),
         timeoutPromise
       ]) as bigint;
-      setLastSpinTimestamp(Number(timestamp));
+      setNextResetTime(Number(resetTime));
     } catch (error) {
-      console.error("Error fetching last spin timestamp:", error);
+      console.error("Error fetching next reset:", error);
     }
   }, [address, arcReadProvider]);
 
@@ -163,37 +136,30 @@ export default function App() {
     setIsRefreshing(true);
     try {
       await Promise.all([
-        fetchSpinsUsed(),
-        fetchPendingReward(),
-        fetchLastSpinTimestamp(),
+        fetchSpinsLeft(),
+        fetchNextReset(),
         fetchContractBalance(),
         fetchBalance()
       ]);
     } finally {
       setIsRefreshing(false);
     }
-  }, [address, fetchSpinsUsed, fetchPendingReward, fetchLastSpinTimestamp, fetchContractBalance, fetchBalance]);
+  }, [address, fetchSpinsLeft, fetchNextReset, fetchContractBalance, fetchBalance]);
 
   useEffect(() => {
-    if (spinsLeft !== null && spinsLeft === 0 && lastSpinTimestamp > 0) {
+    if (spinsLeft !== null && spinsLeft === 0 && nextResetTime > 0) {
       let hasTriggeredRefresh = false;
       
       const calculateCountdown = () => {
         const now = Math.floor(Date.now() / 1000);
-        const resetTime = lastSpinTimestamp + 24 * 60 * 60;
-        const remaining = resetTime - now;
+        const remaining = nextResetTime - now;
         
         if (remaining <= 0) {
           setCountdown(null);
           if (!hasTriggeredRefresh && address) {
             hasTriggeredRefresh = true;
-            const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
-            contract.spinsUsedToday(address).then((spins: bigint) => {
-              setSpinsUsedToday(Number(spins));
-            }).catch(console.error);
-            contract.lastSpinTimestamp(address).then((timestamp: bigint) => {
-              setLastSpinTimestamp(Number(timestamp));
-            }).catch(console.error);
+            fetchSpinsLeft();
+            fetchNextReset();
           }
           return;
         }
@@ -211,62 +177,7 @@ export default function App() {
     } else {
       setCountdown(null);
     }
-  }, [spinsLeft, lastSpinTimestamp, address, arcReadProvider]);
-
-  const claimReward = async () => {
-    if (!provider || !address || pendingReward <= BigInt(0)) return;
-    
-    const claimedAmount = formatUSDC(pendingReward);
-    setIsClaiming(true);
-    try {
-      const signer = await provider.getSigner();
-      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, signer);
-      
-      toast({
-        title: "Confirm Claim",
-        description: "Please confirm the claim transaction in your wallet.",
-      });
-
-      const tx = await contract.claimReward();
-      
-      toast({
-        title: "Claiming...",
-        description: "Sending your reward to your wallet...",
-      });
-
-      await tx.wait();
-      
-      setShowWinDialog(false);
-      setWonPrize(null);
-      setPendingReward(BigInt(0));
-      
-      toast({
-        title: "Reward Claimed Successfully!",
-        description: `${claimedAmount} USDC has been sent to your wallet!`,
-        duration: 8000,
-      });
-
-      fetchBalance();
-      fetchContractBalance();
-      fetchPendingReward();
-    } catch (error: any) {
-      if (error.code === "ACTION_REJECTED" || error.code === 4001) {
-        toast({
-          variant: "destructive",
-          title: "Claim Cancelled",
-          description: "You cancelled the transaction.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Claim Failed",
-          description: error.reason || error.message || "Failed to claim reward.",
-        });
-      }
-    } finally {
-      setIsClaiming(false);
-    }
-  };
+  }, [spinsLeft, nextResetTime, address, fetchSpinsLeft, fetchNextReset]);
 
   const connectWallet = async () => {
     if (!window.ethereum) {
@@ -309,9 +220,9 @@ export default function App() {
     setIsConnected(false);
     setProvider(null);
     setWalletBalance(undefined);
-    setSpinsUsedToday(null);
+    setSpinsLeft(null);
     setIsOnArcNetwork(false);
-    setLastSpinTimestamp(0);
+    setNextResetTime(0);
     setCountdown(null);
   };
 
@@ -400,7 +311,7 @@ export default function App() {
   }, []);
 
   const handleSpin = async () => {
-    if (!provider || !address || isSpinning || spinsLeft === null || spinsLeft <= 0) return;
+    if (!provider || !address || isSpinning || spinsLeft === null || spinsLeft <= 0 || isLowLiquidity) return;
 
     setIsSpinning(true);
     
@@ -433,7 +344,7 @@ export default function App() {
             topics: log.topics as string[],
             data: log.data,
           });
-          if (parsed && parsed.name === "SpinResult") {
+          if (parsed && parsed.name === "SpinPlayed") {
             rewardAmount = parsed.args.reward;
             break;
           }
@@ -477,11 +388,10 @@ export default function App() {
         setShowWinDialog(true);
         
         fetchBalance();
-        fetchSpinsUsed();
-        fetchPendingReward();
+        fetchSpinsLeft();
         fetchContractBalance();
-        fetchLastSpinTimestamp();
-      }, 4000);
+        fetchNextReset();
+      }, 10000);
 
     } catch (error: any) {
       setIsSpinning(false);
@@ -523,7 +433,7 @@ export default function App() {
         checkNetwork();
         if (provider && address) {
           fetchBalance();
-          fetchSpinsUsed();
+          fetchSpinsLeft();
         }
       } catch (e) {
         console.warn("Error handling chain change:", e);
@@ -545,25 +455,24 @@ export default function App() {
         console.warn("Error removing wallet listeners:", e);
       }
     };
-  }, [provider, address, checkNetwork, fetchBalance, fetchSpinsUsed]);
+  }, [provider, address, checkNetwork, fetchBalance, fetchSpinsLeft]);
 
   useEffect(() => {
     if (address) {
-      fetchSpinsUsed();
-      fetchPendingReward();
-      fetchLastSpinTimestamp();
+      fetchSpinsLeft();
+      fetchNextReset();
     }
-  }, [address, fetchSpinsUsed, fetchPendingReward, fetchLastSpinTimestamp]);
+  }, [address, fetchSpinsLeft, fetchNextReset]);
 
   useEffect(() => {
     if (spinsError && address && !isLoadingSpins) {
       const retryTimeout = setTimeout(() => {
         console.log("Auto-retrying to fetch spins...");
-        fetchSpinsUsed();
+        fetchSpinsLeft();
       }, 5000);
       return () => clearTimeout(retryTimeout);
     }
-  }, [spinsError, address, isLoadingSpins, fetchSpinsUsed]);
+  }, [spinsError, address, isLoadingSpins, fetchSpinsLeft]);
 
   useEffect(() => {
     if (isConnected && isOnArcNetwork) {
@@ -614,7 +523,7 @@ export default function App() {
     autoConnectAndSwitchNetwork();
   }, []);
 
-  const canSpin = isConnected && isOnArcNetwork && spinsLeft !== null && spinsLeft > 0 && !isSpinning && !isLoadingSpins && !spinsError;
+  const canSpin = isConnected && isOnArcNetwork && spinsLeft !== null && spinsLeft > 0 && !isSpinning && !isLoadingSpins && !spinsError && !isLowLiquidity;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 relative overflow-hidden">
@@ -763,6 +672,16 @@ export default function App() {
 
             {isOnArcNetwork && (
               <>
+                {isLowLiquidity && (
+                  <Alert className="bg-red-500/10 border-red-500/50">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    <AlertTitle className="text-red-500">Low Liquidity</AlertTitle>
+                    <AlertDescription className="text-red-400">
+                      Spin temporarily disabled due to low liquidity. The contract needs at least {MIN_CONTRACT_BALANCE} USDC to operate.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="flex flex-col md:flex-row justify-center gap-4">
                   <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 w-full max-w-sm">
                     <CardHeader className="pb-2">
@@ -772,7 +691,7 @@ export default function App() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-green-500" data-testid="text-contract-balance">
+                        <div className={`text-3xl font-bold ${isLowLiquidity ? 'text-red-500' : 'text-green-500'}`} data-testid="text-contract-balance">
                           {contractBalance} USDC
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">Available Prize Pool</p>
@@ -848,44 +767,6 @@ export default function App() {
                   </Card>
                 </div>
 
-                {pendingReward > BigInt(0) && (
-                  <Card className="bg-green-500/10 border-green-500/50 max-w-lg mx-auto">
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                            <Trophy className="w-6 h-6 text-green-500" />
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Pending Reward</p>
-                            <p className="text-2xl font-bold text-green-500" data-testid="text-pending-reward">
-                              {formatUSDC(pendingReward)} USDC
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={claimReward}
-                          disabled={isClaiming}
-                          className="bg-green-500 hover:bg-green-400 text-black font-bold"
-                          data-testid="button-claim"
-                        >
-                          {isClaiming ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Claiming...
-                            </>
-                          ) : (
-                            <>
-                              <Gift className="w-4 h-4 mr-2" />
-                              Claim Reward
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
                 {spinsLeft === 0 && (
                   <Alert className="bg-red-500/10 border-red-500/50">
                     <Clock className="h-4 w-4 text-red-500" />
@@ -935,6 +816,11 @@ export default function App() {
                     {!canSpin && !isSpinning && isOnArcNetwork && spinsLeft === 0 && (
                       <p className="text-center text-sm text-muted-foreground mt-6">
                         Come back tomorrow for more spins!
+                      </p>
+                    )}
+                    {isLowLiquidity && (
+                      <p className="text-center text-sm text-red-400 mt-6">
+                        Spin disabled due to low contract liquidity.
                       </p>
                     )}
                   </Card>
@@ -1010,7 +896,7 @@ export default function App() {
                     {lastWinAmount} USDC
                   </div>
                   <p className="text-muted-foreground">
-                    Click the button below to claim your prize to your wallet!
+                    Your reward has been sent to your wallet!
                   </p>
                   {lastTxHash && (
                     <a 
@@ -1037,35 +923,12 @@ export default function App() {
             )}
           </div>
           <DialogFooter className="flex flex-col gap-3 sm:flex-col">
-            {wonPrize && wonPrize.value > 0 && pendingReward > BigInt(0) && (
-              <Button 
-                onClick={() => {
-                  claimReward();
-                }}
-                disabled={isClaiming}
-                size="lg"
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-black font-bold text-lg py-6"
-                data-testid="button-claim-dialog"
-              >
-                {isClaiming ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Claiming to Your Wallet...
-                  </>
-                ) : (
-                  <>
-                    <Gift className="w-5 h-5 mr-2" />
-                    Claim {formatUSDC(pendingReward)} USDC Now
-                  </>
-                )}
-              </Button>
-            )}
             <Button 
               onClick={() => {
                 setShowWinDialog(false);
                 setWonPrize(null);
               }}
-              variant={wonPrize && wonPrize.value > 0 && pendingReward > BigInt(0) ? "outline" : "default"}
+              variant="default"
               className="w-full"
               data-testid="button-close-dialog"
             >

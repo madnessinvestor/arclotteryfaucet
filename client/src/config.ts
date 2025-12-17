@@ -1,9 +1,9 @@
-export const SPIN_CONTRACT_ADDRESS = "0xdB19da3BC195e32685136a63a3B014F74929dE64" as const;
+export const SPIN_CONTRACT_ADDRESS = "0x966Be382F76D399B4a75F9c0cADdCB58Bd7A58BF" as const;
 export const USDC_ADDRESS = "0x3600000000000000000000000000000000000000" as const;
 
 export const ARC_TESTNET = {
   chainId: 5042002,
-  chainIdHex: "0x4CEF52",
+  chainIdHex: "0x4CFB32",
   name: "Arc Testnet",
   rpcUrl: "https://rpc.testnet.arc.network",
   explorer: "https://testnet.arcscan.app",
@@ -24,46 +24,25 @@ export const SPIN_CONTRACT_ABI = [
   },
   {
     type: "function",
-    name: "spinsUsedToday",
+    name: "spinsLeft",
     inputs: [{ name: "user", type: "address", internalType: "address" }],
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },
   {
     type: "function",
-    name: "claimReward",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "pendingRewards",
-    inputs: [{ name: "user", type: "address", internalType: "address" }],
-    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "lastSpinTimestamp",
+    name: "nextReset",
     inputs: [{ name: "user", type: "address", internalType: "address" }],
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },
   {
     type: "event",
-    name: "SpinResult",
+    name: "SpinPlayed",
     inputs: [
-      { name: "user", type: "address", indexed: true, internalType: "address" },
+      { name: "player", type: "address", indexed: true, internalType: "address" },
       { name: "reward", type: "uint256", indexed: false, internalType: "uint256" },
-    ],
-  },
-  {
-    type: "event",
-    name: "RewardClaimed",
-    inputs: [
-      { name: "user", type: "address", indexed: true, internalType: "address" },
-      { name: "amount", type: "uint256", indexed: false, internalType: "uint256" },
+      { name: "random", type: "uint256", indexed: false, internalType: "uint256" },
     ],
   },
 ] as const;
@@ -78,4 +57,5 @@ export const USDC_ABI = [
   },
 ] as const;
 
-export const MAX_SPINS_PER_DAY = 5;
+export const MAX_SPINS_PER_DAY = 20;
+export const MIN_CONTRACT_BALANCE = 1000;

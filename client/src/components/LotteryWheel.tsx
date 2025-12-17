@@ -71,7 +71,7 @@ export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: Lottery
           className="w-full h-full rounded-full border-4 border-yellow-500/50 shadow-2xl overflow-hidden"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transition: isSpinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+            transition: isSpinning ? 'transform 10s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
             boxShadow: '0 0 60px rgba(255, 215, 0, 0.3), inset 0 0 30px rgba(0,0,0,0.3)',
           }}
         >

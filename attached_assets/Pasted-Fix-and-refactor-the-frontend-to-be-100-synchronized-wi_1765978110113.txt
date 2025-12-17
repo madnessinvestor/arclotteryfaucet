@@ -1,0 +1,97 @@
+Fix and refactor the frontend to be 100% synchronized with the on-chain contract.
+
+==============================
+NETWORK (MANDATORY)
+==============================
+
+Network Name: Arc Testnet
+Chain ID (decimal): 5042002
+Chain ID (hex): 0x4CFB32
+RPC: https://rpc.testnet.arc.network
+Explorer: https://testnet.arcscan.app
+Native Currency: USDC (6 decimals)
+
+When the wallet connects:
+1) Automatically switch to Arc Testnet
+2) If not added, add the network automatically
+3) Block UI until network is correct
+
+==============================
+CONTRACT
+==============================
+
+Spin Contract Address:
+0xC33a57Af3BFDB148a8d198Fbe0b457f874519ca9
+
+ABI (minimum required):
+- function spin(uint256 random)
+- function spinsLeft(address user) view returns (uint256)
+- function nextReset(address user) view returns (uint256)
+- event SpinPlayed(address indexed player, uint256 reward, uint256 random)
+
+==============================
+SPIN LOGIC (CRITICAL)
+==============================
+
+1) The frontend MUST NOT decide the result.
+2) The spin animation must ONLY reflect the on-chain result.
+3) Flow:
+   - User clicks SPIN
+   - Generate random using crypto.getRandomValues
+   - Call spin(random)
+   - Wait for transaction confirmation
+   - Listen for SpinPlayed event
+   - Extract reward
+   - Animate wheel for ~10 seconds
+   - Stop exactly at the reward returned by the event
+
+==============================
+SPIN LIMIT / TIMER
+==============================
+
+- Max spins per wallet: 20 per 24 hours
+- Read spinsLeft(user) from the contract
+- Display "Spins left today: X / 20"
+- If spinsLeft == 0:
+  - Disable SPIN button
+  - Read nextReset(user)
+  - Show countdown timer (HH:MM:SS)
+  - Enable SPIN again only after reset
+
+==============================
+BALANCE CHECK
+==============================
+
+- Read contract native balance
+- If contract balance < 1000 USDC:
+  - Disable SPIN
+  - Show message: "Spin temporarily disabled due to low liquidity"
+
+==============================
+ANIMATION
+==============================
+
+- Spin wheel animation duration: ~10 seconds
+- Use easing (ease-out)
+- Pointer stays fixed
+- Wheel rotates and stops at the correct prize
+- Animation MUST wait for the blockchain result
+
+==============================
+UI
+==============================
+
+- Show connected wallet address
+- Show user's USDC balance
+- Show spins remaining
+- Show countdown timer
+- Dark mode
+- Web3 casino style
+
+==============================
+IMPORTANT
+==============================
+
+- No backend
+- No frontend randomness deciding outcome
+- Everything must be driven by the contract state

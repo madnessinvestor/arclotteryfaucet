@@ -53,17 +53,33 @@ Preferred communication style: Simple, everyday language.
 - 5 USDC (15% chance)
 - Nothing (remaining %)
 
-## Spin Flow
+## Spin Flow (Contract-Synchronized)
+The wheel animation is 100% synchronized with the blockchain result:
+
+**Phase 1: Blockchain Transaction**
 1. User clicks SPIN button
-2. Generate random number using crypto.getRandomValues
-3. Call spin(random) on the contract
-4. Wallet opens for transaction confirmation
-5. Wait for transaction confirmation
-6. Parse SpinPlayed event to get the reward
-7. Animate wheel for ~10 seconds
-8. Stop exactly at the reward returned by the event
-9. Show congratulations modal with prize amount
-10. Update USDC balance and spins counter
+2. Button shows "Confirm in wallet..." status
+3. Generate random number using crypto.getRandomValues
+4. Call spin(random) on the contract
+5. Wallet opens for transaction confirmation
+6. Status changes to "Waiting for blockchain result..."
+7. Wait for transaction to be mined
+8. Parse SpinPlayed event (filtered by connected wallet address)
+
+**Phase 2: Visual Animation (only after event received)**
+9. Extract exact reward value from SpinPlayed event
+10. Map reward to the correct wheel sector
+11. Status changes to "Spinning..."
+12. Animate wheel for ~10 seconds
+13. Stop exactly at the sector corresponding to the reward
+14. Show congratulations modal with prize amount
+15. Update USDC balance and spins counter from contract
+
+**State Management:**
+- `isWaitingForBlockchain`: True during transaction confirmation
+- `isAnimating`: True during wheel animation
+- `spinStatus`: Shows current phase message
+- Button disabled when either state is true
 
 ## Daily Spin Limit
 - Users are limited to 20 spins per 24 hours

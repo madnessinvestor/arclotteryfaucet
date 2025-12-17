@@ -52,7 +52,7 @@ export default function App() {
 
   const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl), []);
   
-  const spinsLeft = spinsUsedToday !== null ? MAX_SPINS_PER_DAY - spinsUsedToday : MAX_SPINS_PER_DAY;
+  const spinsLeft = spinsUsedToday !== null ? MAX_SPINS_PER_DAY - spinsUsedToday : null;
 
   const checkNetwork = useCallback(async () => {
     if (!window.ethereum) return false;
@@ -143,7 +143,7 @@ export default function App() {
   }, [address, arcReadProvider]);
 
   useEffect(() => {
-    if (spinsLeft === 0 && lastSpinTimestamp > 0) {
+    if (spinsLeft !== null && spinsLeft === 0 && lastSpinTimestamp > 0) {
       let hasTriggeredRefresh = false;
       
       const calculateCountdown = () => {
@@ -335,7 +335,7 @@ export default function App() {
   }, []);
 
   const handleSpin = async () => {
-    if (!provider || !address || isSpinning || spinsLeft <= 0) return;
+    if (!provider || !address || isSpinning || spinsLeft === null || spinsLeft <= 0) return;
 
     setIsSpinning(true);
     
@@ -586,7 +586,7 @@ export default function App() {
     autoConnectAndSwitchNetwork();
   }, []);
 
-  const canSpin = isConnected && isOnArcNetwork && spinsLeft > 0 && !isSpinning && !isLoadingSpins && spinsUsedToday !== null;
+  const canSpin = isConnected && isOnArcNetwork && spinsLeft !== null && spinsLeft > 0 && !isSpinning && !isLoadingSpins;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 relative overflow-hidden">
@@ -761,8 +761,16 @@ export default function App() {
                     <CardContent>
                       <div className="text-center">
                         <div className="text-4xl font-bold" data-testid="text-spins-left">
-                          <span className={spinsLeft > 0 ? "text-green-500" : "text-red-500"}>{spinsLeft}</span>
-                          <span className="text-muted-foreground"> / {MAX_SPINS_PER_DAY}</span>
+                          {spinsLeft !== null ? (
+                            <>
+                              <span className={spinsLeft > 0 ? "text-green-500" : "text-red-500"}>{spinsLeft}</span>
+                              <span className="text-muted-foreground"> / {MAX_SPINS_PER_DAY}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground flex items-center justify-center gap-2">
+                              <Loader2 className="w-6 h-6 animate-spin" /> Loading...
+                            </span>
+                          )}
                         </div>
                         {spinsLeft === 0 && (
                           <p className="text-xs text-muted-foreground mt-2">Come back tomorrow for more spins!</p>
@@ -993,7 +1001,7 @@ export default function App() {
               className="w-full"
               data-testid="button-close-dialog"
             >
-              {spinsLeft > 0 ? "Spin Again!" : "Close"}
+              {spinsLeft !== null && spinsLeft > 0 ? "Spin Again!" : "Close"}
             </Button>
           </DialogFooter>
         </DialogContent>

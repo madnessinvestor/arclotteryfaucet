@@ -50,7 +50,7 @@ export default function App() {
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
   const [isLoadingSpins, setIsLoadingSpins] = useState(false);
 
-  const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl), []);
+  const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl, undefined, { staticNetwork: true }), []);
   
   const spinsLeft = spinsUsedToday !== null ? MAX_SPINS_PER_DAY - spinsUsedToday : null;
 
@@ -82,10 +82,17 @@ export default function App() {
     setIsLoadingSpins(true);
     try {
       const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
-      const spins = await contract.spinsUsedToday(address);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout")), 10000)
+      );
+      const spins = await Promise.race([
+        contract.spinsUsedToday(address),
+        timeoutPromise
+      ]) as bigint;
       setSpinsUsedToday(Number(spins));
     } catch (error) {
       console.error("Error fetching spins used:", error);
+      setSpinsUsedToday(0);
     } finally {
       setIsLoadingSpins(false);
     }
@@ -134,7 +141,13 @@ export default function App() {
     if (!address) return;
     try {
       const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
-      const timestamp = await contract.lastSpinTimestamp(address);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout")), 10000)
+      );
+      const timestamp = await Promise.race([
+        contract.lastSpinTimestamp(address),
+        timeoutPromise
+      ]) as bigint;
       setLastSpinTimestamp(Number(timestamp));
     } catch (error) {
       console.error("Error fetching last spin timestamp:", error);

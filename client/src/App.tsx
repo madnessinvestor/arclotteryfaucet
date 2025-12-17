@@ -41,6 +41,11 @@ export default function App() {
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const [showWinDialog, setShowWinDialog] = useState(false);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
+  const [contractBalance, setContractBalance] = useState<string>("0.00");
+  const [pendingReward, setPendingReward] = useState<bigint>(BigInt(0));
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [lastWinAmount, setLastWinAmount] = useState<number>(0);
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
   const spinsLeft = MAX_SPINS_PER_DAY - spinsUsedToday;
 
@@ -77,6 +82,94 @@ export default function App() {
       console.error("Error fetching spins used:", error);
     }
   }, [provider, address, isOnArcNetwork]);
+
+  const fetchContractBalance = useCallback(async () => {
+    try {
+      const response = await fetch("/api/contract-balance", {
+        headers: { "Cache-Control": "no-cache" }
+      });
+      if (response.status !== 200 && response.status !== 304) {
+        console.warn("Contract balance request failed:", response.status);
+        return;
+      }
+      const text = await response.text();
+      if (!text || text.startsWith("<!DOCTYPE") || text.startsWith("<")) {
+        console.warn("Contract balance response is HTML, not JSON");
+        return;
+      }
+      try {
+        const data = JSON.parse(text);
+        if (data && data.balance) {
+          setContractBalance(data.balance);
+        }
+      } catch (parseError) {
+        console.warn("Failed to parse contract balance JSON:", parseError);
+      }
+    } catch (error) {
+      console.error("Error fetching contract balance:", error);
+    }
+  }, []);
+
+  const fetchPendingReward = useCallback(async () => {
+    if (!provider || !address || !isOnArcNetwork) return;
+    try {
+      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, provider);
+      const pending = await contract.pendingRewards(address);
+      setPendingReward(pending);
+    } catch (error) {
+      console.error("Error fetching pending rewards:", error);
+      setPendingReward(BigInt(0));
+    }
+  }, [provider, address, isOnArcNetwork]);
+
+  const claimReward = async () => {
+    if (!provider || !address || pendingReward <= BigInt(0)) return;
+    
+    setIsClaiming(true);
+    try {
+      const signer = await provider.getSigner();
+      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, signer);
+      
+      toast({
+        title: "Confirm Claim",
+        description: "Please confirm the claim transaction in your wallet.",
+      });
+
+      const tx = await contract.claimReward();
+      
+      toast({
+        title: "Claiming...",
+        description: "Waiting for confirmation...",
+      });
+
+      await tx.wait();
+      
+      toast({
+        title: "Reward Claimed!",
+        description: `Successfully claimed ${formatUSDC(pendingReward)} USDC!`,
+      });
+
+      setPendingReward(BigInt(0));
+      fetchBalance();
+      fetchContractBalance();
+    } catch (error: any) {
+      if (error.code === "ACTION_REJECTED" || error.code === 4001) {
+        toast({
+          variant: "destructive",
+          title: "Claim Cancelled",
+          description: "You cancelled the transaction.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Claim Failed",
+          description: error.reason || error.message || "Failed to claim reward.",
+        });
+      }
+    } finally {
+      setIsClaiming(false);
+    }
+  };
 
   const connectWallet = async () => {
     if (!window.ethereum) {
@@ -228,6 +321,27 @@ export default function App() {
       const totalRotation = spins * 360 + targetAngle;
       
       setRotation(prev => prev + totalRotation);
+      setLastWinAmount(rewardValue);
+      setLastTxHash(receipt.hash);
+
+      let serverMessage = "";
+      try {
+        const spinResultResponse = await fetch("/api/spin-result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: address,
+            reward: rewardValue,
+            transactionHash: receipt.hash
+          })
+        });
+        if (spinResultResponse.ok) {
+          const spinResultData = await spinResultResponse.json();
+          serverMessage = spinResultData.message || "";
+        }
+      } catch (e) {
+        console.warn("Failed to log spin result:", e);
+      }
 
       setTimeout(() => {
         setIsSpinning(false);
@@ -235,8 +349,17 @@ export default function App() {
         setWonPrize(prize);
         setShowWinDialog(true);
         
+        if (serverMessage && rewardValue > 0) {
+          toast({
+            title: "You Won!",
+            description: serverMessage,
+          });
+        }
+        
         fetchBalance();
         fetchSpinsUsed();
+        fetchPendingReward();
+        fetchContractBalance();
       }, 4000);
 
     } catch (error: any) {
@@ -307,8 +430,68 @@ export default function App() {
     if (isConnected && isOnArcNetwork) {
       fetchBalance();
       fetchSpinsUsed();
+      fetchPendingReward();
     }
-  }, [isConnected, isOnArcNetwork, fetchBalance, fetchSpinsUsed]);
+  }, [isConnected, isOnArcNetwork, fetchBalance, fetchSpinsUsed, fetchPendingReward]);
+
+  useEffect(() => {
+    fetchContractBalance();
+    const interval = setInterval(fetchContractBalance, 30000);
+    return () => clearInterval(interval);
+  }, [fetchContractBalance]);
+
+  useEffect(() => {
+    const autoConnectAndSwitchNetwork = async () => {
+      if (!window.ethereum) return;
+      
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_accounts" }) as string[];
+        
+        if (accounts.length > 0) {
+          const browserProvider = new BrowserProvider(window.ethereum);
+          setAddress(accounts[0]);
+          setIsConnected(true);
+          setProvider(browserProvider);
+          
+          const chainId = await window.ethereum.request({ method: "eth_chainId" }) as string;
+          const isArc = parseInt(chainId, 16) === ARC_TESTNET.chainId;
+          setIsOnArcNetwork(isArc);
+          
+          if (!isArc) {
+            try {
+              await window.ethereum.request({
+                method: "wallet_switchEthereumChain",
+                params: [{ chainId: ARC_TESTNET.chainIdHex }],
+              });
+              setIsOnArcNetwork(true);
+            } catch (switchError: any) {
+              if (switchError.code === 4902) {
+                try {
+                  await window.ethereum.request({
+                    method: "wallet_addEthereumChain",
+                    params: [{
+                      chainId: ARC_TESTNET.chainIdHex,
+                      chainName: ARC_TESTNET.name,
+                      nativeCurrency: ARC_TESTNET.nativeCurrency,
+                      rpcUrls: [ARC_TESTNET.rpcUrl],
+                      blockExplorerUrls: [ARC_TESTNET.explorer],
+                    }],
+                  });
+                  setIsOnArcNetwork(true);
+                } catch (e) {
+                  console.warn("Failed to add Arc network:", e);
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Auto-connect failed:", e);
+      }
+    };
+
+    autoConnectAndSwitchNetwork();
+  }, []);
 
   const canSpin = isConnected && isOnArcNetwork && spinsLeft > 0 && !isSpinning;
 
@@ -403,8 +586,13 @@ export default function App() {
               
               <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 max-w-md w-full">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Gift className="w-4 h-4 text-yellow-500" /> Prize Pool
+                  <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-yellow-500" /> Prize Pool
+                    </div>
+                    <Badge variant="outline" className="text-green-500 border-green-500/50" data-testid="badge-contract-balance">
+                      {contractBalance} USDC
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -453,7 +641,23 @@ export default function App() {
 
             {isOnArcNetwork && (
               <>
-                <div className="flex justify-center">
+                <div className="flex flex-col md:flex-row justify-center gap-4">
+                  <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 w-full max-w-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
+                        <Gift className="w-4 h-4" /> Contract Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-green-500" data-testid="text-contract-balance">
+                          {contractBalance} USDC
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Available Prize Pool</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 w-full max-w-sm">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
@@ -473,6 +677,44 @@ export default function App() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {pendingReward > BigInt(0) && (
+                  <Card className="bg-green-500/10 border-green-500/50 max-w-lg mx-auto">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                            <Trophy className="w-6 h-6 text-green-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Pending Reward</p>
+                            <p className="text-2xl font-bold text-green-500" data-testid="text-pending-reward">
+                              {formatUSDC(pendingReward)} USDC
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={claimReward}
+                          disabled={isClaiming}
+                          className="bg-green-500 hover:bg-green-400 text-black font-bold"
+                          data-testid="button-claim"
+                        >
+                          {isClaiming ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Claiming...
+                            </>
+                          ) : (
+                            <>
+                              <Gift className="w-4 h-4 mr-2" />
+                              Claim Reward
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {spinsLeft === 0 && (
                   <Alert className="bg-red-500/10 border-red-500/50">
@@ -573,17 +815,55 @@ export default function App() {
               )}
             </div>
             {wonPrize && wonPrize.value > 0 && (
-              <p className="text-muted-foreground text-center">
-                Your prize has been sent to your wallet!
-              </p>
+              <div className="text-center space-y-3">
+                <p className="text-muted-foreground">
+                  Your prize of <span className="font-bold text-green-500">{lastWinAmount} USDC</span> is ready!
+                </p>
+                {lastTxHash && (
+                  <a 
+                    href={`${ARC_TESTNET.explorer}/tx/${lastTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors block"
+                    data-testid="link-tx-hash"
+                  >
+                    View Transaction
+                  </a>
+                )}
+              </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-col">
+            {wonPrize && wonPrize.value > 0 && pendingReward > BigInt(0) && (
+              <Button 
+                onClick={() => {
+                  setShowWinDialog(false);
+                  setWonPrize(null);
+                  claimReward();
+                }}
+                disabled={isClaiming}
+                className="w-full bg-green-500 hover:bg-green-400 text-black font-bold"
+                data-testid="button-claim-dialog"
+              >
+                {isClaiming ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Claiming...
+                  </>
+                ) : (
+                  <>
+                    <Gift className="w-4 h-4 mr-2" />
+                    Claim {formatUSDC(pendingReward)} USDC Now
+                  </>
+                )}
+              </Button>
+            )}
             <Button 
               onClick={() => {
                 setShowWinDialog(false);
                 setWonPrize(null);
               }}
+              variant={wonPrize && wonPrize.value > 0 && pendingReward > BigInt(0) ? "outline" : "default"}
               className="w-full"
               data-testid="button-close-dialog"
             >

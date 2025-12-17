@@ -4,8 +4,10 @@ import { storage } from "./storage";
 import { insertClaimHistorySchema } from "@shared/schema";
 
 const FAUCET_CONTRACT = "0xBd736A5D744A6364dd74B12Bb679d66360d7AeD9";
+const SPIN_CONTRACT = "0xdB19da3BC195e32685136a63a3B014F74929dE64";
 const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
 const ARCSCAN_API = "https://testnet.arcscan.app/api";
+const ARC_RPC = "https://rpc.testnet.arc.network";
 
 interface ArcscanTokenTransfer {
   hash: string;
@@ -147,6 +149,73 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error('Error fetching total claimed:', error);
       res.json({ totalClaimed: "0", claimCount: 0 });
+    }
+  });
+
+  app.get("/api/contract-balance", async (req, res) => {
+    try {
+      const addressWithoutPrefix = SPIN_CONTRACT.slice(2).toLowerCase();
+      const paddedAddress = addressWithoutPrefix.padStart(64, '0');
+      const balanceOfData = "0x70a08231" + paddedAddress;
+      
+      const response = await fetch(ARC_RPC, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_call",
+          params: [
+            {
+              to: USDC_ADDRESS,
+              data: balanceOfData,
+            },
+            "latest",
+          ],
+          id: 1,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch contract balance");
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      const balanceHex = data.result;
+      const balanceWei = BigInt(balanceHex);
+      const balanceUSDC = Number(balanceWei) / Math.pow(10, 6);
+
+      res.json({ 
+        balance: balanceUSDC.toFixed(2),
+        balanceRaw: balanceWei.toString()
+      });
+    } catch (error: any) {
+      console.error("Error fetching contract balance:", error);
+      res.json({ balance: "0.00", balanceRaw: "0" });
+    }
+  });
+
+  app.post("/api/spin-result", async (req, res) => {
+    try {
+      const { walletAddress, reward, transactionHash } = req.body;
+      
+      if (!walletAddress || reward === undefined || !transactionHash) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: reward > 0 ? `Congratulations! You won ${reward} USDC!` : "Better luck next time!",
+        reward,
+        walletAddress,
+        transactionHash
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

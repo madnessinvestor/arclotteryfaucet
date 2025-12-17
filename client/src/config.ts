@@ -30,11 +30,33 @@ export const SPIN_CONTRACT_ABI = [
     stateMutability: "view",
   },
   {
+    type: "function",
+    name: "claimReward",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "pendingRewards",
+    inputs: [{ name: "user", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
     type: "event",
     name: "SpinResult",
     inputs: [
       { name: "user", type: "address", indexed: true, internalType: "address" },
       { name: "reward", type: "uint256", indexed: false, internalType: "uint256" },
+    ],
+  },
+  {
+    type: "event",
+    name: "RewardClaimed",
+    inputs: [
+      { name: "user", type: "address", indexed: true, internalType: "address" },
+      { name: "amount", type: "uint256", indexed: false, internalType: "uint256" },
     ],
   },
 ] as const;

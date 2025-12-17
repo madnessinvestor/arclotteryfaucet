@@ -300,6 +300,20 @@ export default function App() {
     if (!window.ethereum) return;
     
     setIsSwitchingNetwork(true);
+    
+    const addArcNetwork = async () => {
+      await window.ethereum!.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: ARC_TESTNET.chainIdHex,
+          chainName: ARC_TESTNET.name,
+          nativeCurrency: ARC_TESTNET.nativeCurrency,
+          rpcUrls: [ARC_TESTNET.rpcUrl],
+          blockExplorerUrls: [ARC_TESTNET.explorer],
+        }],
+      });
+    };
+    
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
@@ -311,36 +325,55 @@ export default function App() {
         description: "Switched to Arc Testnet successfully.",
       });
     } catch (switchError: any) {
-      if (switchError.code === 4902) {
+      console.log("Switch error:", switchError);
+      const errorCode = switchError?.code || switchError?.error?.code;
+      
+      if (errorCode === 4902 || errorCode === -32603 || !errorCode) {
         try {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: ARC_TESTNET.chainIdHex,
-              chainName: ARC_TESTNET.name,
-              nativeCurrency: ARC_TESTNET.nativeCurrency,
-              rpcUrls: [ARC_TESTNET.rpcUrl],
-              blockExplorerUrls: [ARC_TESTNET.explorer],
-            }],
-          });
+          await addArcNetwork();
           setIsOnArcNetwork(true);
           toast({
             title: "Network Added",
             description: "Arc Testnet has been added and connected.",
           });
         } catch (addError: any) {
-          toast({
-            variant: "destructive",
-            title: "Failed to Add Network",
-            description: addError.message || "Please add Arc Testnet manually.",
-          });
+          console.log("Add error:", addError);
+          if (addError?.code === 4001) {
+            toast({
+              variant: "destructive",
+              title: "Request Rejected",
+              description: "You rejected the network addition request.",
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Failed to Add Network",
+              description: addError.message || "Please add Arc Testnet manually.",
+            });
+          }
         }
-      } else {
+      } else if (errorCode === 4001) {
         toast({
           variant: "destructive",
-          title: "Network Switch Failed",
-          description: "Please switch to Arc Testnet manually in your wallet.",
+          title: "Request Rejected",
+          description: "You rejected the network switch request.",
         });
+      } else {
+        try {
+          await addArcNetwork();
+          setIsOnArcNetwork(true);
+          toast({
+            title: "Network Added",
+            description: "Arc Testnet has been added and connected.",
+          });
+        } catch (addError: any) {
+          console.log("Fallback add error:", addError);
+          toast({
+            variant: "destructive",
+            title: "Network Switch Failed",
+            description: "Please switch to Arc Testnet manually in your wallet.",
+          });
+        }
       }
     } finally {
       setIsSwitchingNetwork(false);
@@ -543,53 +576,6 @@ export default function App() {
           const chainId = await window.ethereum.request({ method: "eth_chainId" }) as string;
           const isArc = parseInt(chainId, 16) === ARC_TESTNET.chainId;
           setIsOnArcNetwork(isArc);
-          
-          if (!isArc) {
-            try {
-              await window.ethereum.request({
-                method: "wallet_switchEthereumChain",
-                params: [{ chainId: ARC_TESTNET.chainIdHex }],
-              });
-              setIsOnArcNetwork(true);
-              toast({
-                title: "Network Switched",
-                description: "Connected to Arc Testnet automatically.",
-              });
-            } catch (switchError: any) {
-              if (switchError.code === 4902) {
-                try {
-                  await window.ethereum.request({
-                    method: "wallet_addEthereumChain",
-                    params: [{
-                      chainId: ARC_TESTNET.chainIdHex,
-                      chainName: ARC_TESTNET.name,
-                      nativeCurrency: ARC_TESTNET.nativeCurrency,
-                      rpcUrls: [ARC_TESTNET.rpcUrl],
-                      blockExplorerUrls: [ARC_TESTNET.explorer],
-                    }],
-                  });
-                  setIsOnArcNetwork(true);
-                  toast({
-                    title: "Network Added",
-                    description: "Arc Testnet has been added and connected.",
-                  });
-                } catch (e) {
-                  console.warn("Failed to add Arc network:", e);
-                  toast({
-                    variant: "destructive",
-                    title: "Network Switch Required",
-                    description: "Please switch to Arc Testnet to play.",
-                  });
-                }
-              } else {
-                toast({
-                  variant: "destructive",
-                  title: "Network Switch Required",
-                  description: "Please switch to Arc Testnet to play.",
-                });
-              }
-            }
-          }
         }
       } catch (e) {
         console.warn("Auto-connect failed:", e);

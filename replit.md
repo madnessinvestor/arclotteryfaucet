@@ -58,7 +58,21 @@ Preferred communication style: Simple, everyday language.
 5. Wait for transaction confirmation
 6. Parse SpinResult event to get the reward
 7. Animate wheel to stop on the correct prize
-8. Update USDC balance and spins counter
+8. Show congratulations modal with prize amount and claim button
+9. User clicks Claim to receive USDC in their wallet
+10. Update USDC balance and spins counter
+
+## Claim Flow
+1. When user wins a prize, pendingRewards is updated in the contract
+2. User clicks "Claim" button in the win modal or on the main screen
+3. claimReward() is called on the contract
+4. USDC is transferred to user's wallet
+5. UI updates to show new balance
+
+## Daily Spin Limit
+- Users are limited to 5 spins per 24 hours
+- When limit is reached, a countdown timer shows time until next spins are available
+- Timer updates every second and refreshes spins count when it reaches zero
 
 ## External Dependencies
 

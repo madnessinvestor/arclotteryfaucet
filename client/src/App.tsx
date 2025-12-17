@@ -36,10 +36,12 @@ export default function App() {
   const [walletBalance, setWalletBalance] = useState<bigint | undefined>();
   const [spinsLeft, setSpinsLeft] = useState<number | null>(null);
   const [nextResetTime, setNextResetTime] = useState<number>(0);
-  const [isSpinning, setIsSpinning] = useState(false);
+  const [isWaitingForBlockchain, setIsWaitingForBlockchain] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [spinStatus, setSpinStatus] = useState<string>("");
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const [showWinDialog, setShowWinDialog] = useState(false);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
@@ -311,9 +313,10 @@ export default function App() {
   }, []);
 
   const handleSpin = async () => {
-    if (!provider || !address || isSpinning || spinsLeft === null || spinsLeft <= 0 || isLowLiquidity) return;
+    if (!provider || !address || isWaitingForBlockchain || isAnimating || spinsLeft === null || spinsLeft <= 0 || isLowLiquidity) return;
 
-    setIsSpinning(true);
+    setIsWaitingForBlockchain(true);
+    setSpinStatus("Confirm in wallet...");
     
     try {
       const signer = await provider.getSigner();
@@ -330,14 +333,18 @@ export default function App() {
 
       const tx = await contract.spin(randomNumber);
       
+      setSpinStatus("Waiting for blockchain result...");
+      
       toast({
         title: "Transaction Sent",
-        description: "Waiting for confirmation...",
+        description: "Waiting for blockchain confirmation...",
       });
 
       const receipt = await tx.wait();
       
       let rewardAmount = BigInt(0);
+      let eventFound = false;
+      
       for (const log of receipt.logs) {
         try {
           const parsed = contract.interface.parseLog({
@@ -345,13 +352,25 @@ export default function App() {
             data: log.data,
           });
           if (parsed && parsed.name === "SpinPlayed") {
-            rewardAmount = parsed.args.reward;
-            break;
+            const eventPlayer = parsed.args.player?.toLowerCase();
+            if (eventPlayer === address.toLowerCase()) {
+              rewardAmount = parsed.args.reward;
+              eventFound = true;
+              break;
+            }
           }
         } catch {
           continue;
         }
       }
+
+      if (!eventFound) {
+        throw new Error("SpinPlayed event not found for your wallet");
+      }
+
+      setIsWaitingForBlockchain(false);
+      setIsAnimating(true);
+      setSpinStatus("Spinning...");
 
       const targetIndex = getPrizeIndexByBigInt(rewardAmount);
       const rewardValue = Number(rewardAmount / BigInt(1000000));
@@ -382,7 +401,8 @@ export default function App() {
       }
 
       setTimeout(() => {
-        setIsSpinning(false);
+        setIsAnimating(false);
+        setSpinStatus("");
         const prize = prizes[targetIndex];
         setWonPrize(prize);
         setShowWinDialog(true);
@@ -394,7 +414,9 @@ export default function App() {
       }, 10000);
 
     } catch (error: any) {
-      setIsSpinning(false);
+      setIsWaitingForBlockchain(false);
+      setIsAnimating(false);
+      setSpinStatus("");
       
       if (error.code === "ACTION_REJECTED" || error.code === 4001) {
         toast({
@@ -523,7 +545,8 @@ export default function App() {
     autoConnectAndSwitchNetwork();
   }, []);
 
-  const canSpin = isConnected && isOnArcNetwork && spinsLeft !== null && spinsLeft > 0 && !isSpinning && !isLoadingSpins && !spinsError && !isLowLiquidity;
+  const isSpinBusy = isWaitingForBlockchain || isAnimating;
+  const canSpin = isConnected && isOnArcNetwork && spinsLeft !== null && spinsLeft > 0 && !isSpinBusy && !isLoadingSpins && !spinsError && !isLowLiquidity;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 relative overflow-hidden">
@@ -808,12 +831,14 @@ export default function App() {
                     <LotteryWheel 
                       onSpin={handleSpin}
                       disabled={!canSpin}
-                      isSpinning={isSpinning}
+                      isWaitingForBlockchain={isWaitingForBlockchain}
+                      isAnimating={isAnimating}
+                      spinStatus={spinStatus}
                       targetPrizeIndex={null}
                       rotation={rotation}
                     />
 
-                    {!canSpin && !isSpinning && isOnArcNetwork && spinsLeft === 0 && (
+                    {!canSpin && !isSpinBusy && isOnArcNetwork && spinsLeft === 0 && (
                       <p className="text-center text-sm text-muted-foreground mt-6">
                         Come back tomorrow for more spins!
                       </p>

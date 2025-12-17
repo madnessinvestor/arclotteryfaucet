@@ -52,14 +52,17 @@ export function getPrizeIndexByValue(value: number): number {
 interface LotteryWheelProps {
   onSpin: () => void;
   disabled?: boolean;
-  isSpinning: boolean;
+  isWaitingForBlockchain: boolean;
+  isAnimating: boolean;
+  spinStatus: string;
   targetPrizeIndex: number | null;
   rotation: number;
 }
 
-export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: LotteryWheelProps) {
+export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnimating, spinStatus, rotation }: LotteryWheelProps) {
   const wheelRef = useRef<HTMLDivElement>(null);
   const segmentAngle = 360 / prizes.length;
+  const isSpinBusy = isWaitingForBlockchain || isAnimating;
 
   return (
     <div className="relative flex flex-col items-center">
@@ -71,7 +74,7 @@ export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: Lottery
           className="w-full h-full rounded-full border-4 border-yellow-500/50 shadow-2xl overflow-hidden"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transition: isSpinning ? 'transform 10s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+            transition: isAnimating ? 'transform 10s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
             boxShadow: '0 0 60px rgba(255, 215, 0, 0.3), inset 0 0 30px rgba(0,0,0,0.3)',
           }}
         >
@@ -130,21 +133,30 @@ export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: Lottery
         </div>
         
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Button
-            onClick={onSpin}
-            disabled={isSpinning || disabled}
-            className="pointer-events-auto w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-lg font-bold shadow-xl border-4 border-yellow-300"
-            data-testid="button-spin"
-          >
-            {isSpinning ? (
-              <Loader2 className="w-8 h-8 animate-spin" />
-            ) : (
-              <>
-                <Zap className="w-5 h-5 mr-1" />
-                SPIN
-              </>
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              onClick={onSpin}
+              disabled={isSpinBusy || disabled}
+              className="pointer-events-auto w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-lg font-bold shadow-xl border-4 border-yellow-300"
+              data-testid="button-spin"
+            >
+              {isWaitingForBlockchain ? (
+                <Loader2 className="w-8 h-8 animate-spin" />
+              ) : isAnimating ? (
+                <Loader2 className="w-8 h-8 animate-spin" />
+              ) : (
+                <>
+                  <Zap className="w-5 h-5 mr-1" />
+                  SPIN
+                </>
+              )}
+            </Button>
+            {spinStatus && (
+              <div className="pointer-events-none bg-black/80 rounded-lg px-3 py-1 text-center">
+                <span className="text-xs text-yellow-400 font-medium">{spinStatus}</span>
+              </div>
             )}
-          </Button>
+          </div>
         </div>
       </div>
 

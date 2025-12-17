@@ -520,6 +520,10 @@ export default function App() {
                 params: [{ chainId: ARC_TESTNET.chainIdHex }],
               });
               setIsOnArcNetwork(true);
+              toast({
+                title: "Network Switched",
+                description: "Connected to Arc Testnet automatically.",
+              });
             } catch (switchError: any) {
               if (switchError.code === 4902) {
                 try {
@@ -534,9 +538,24 @@ export default function App() {
                     }],
                   });
                   setIsOnArcNetwork(true);
+                  toast({
+                    title: "Network Added",
+                    description: "Arc Testnet has been added and connected.",
+                  });
                 } catch (e) {
                   console.warn("Failed to add Arc network:", e);
+                  toast({
+                    variant: "destructive",
+                    title: "Network Switch Required",
+                    description: "Please switch to Arc Testnet to play.",
+                  });
                 }
+              } else {
+                toast({
+                  variant: "destructive",
+                  title: "Network Switch Required",
+                  description: "Please switch to Arc Testnet to play.",
+                });
               }
             }
           }
@@ -656,9 +675,10 @@ export default function App() {
                     <div className="flex justify-between"><span className="text-muted-foreground">1000 USDC</span><span className="text-yellow-500 font-bold">2%</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">200 USDC</span><span className="text-purple-500 font-bold">3%</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">100 USDC</span><span className="text-pink-500 font-bold">10%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">50 USDC</span><span className="text-amber-500 font-bold">5%</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">20 USDC</span><span className="text-cyan-500 font-bold">~5%</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">10 USDC</span><span className="text-blue-500 font-bold">10%</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">5 USDC</span><span className="text-green-500 font-bold">20%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">5 USDC</span><span className="text-green-500 font-bold">15%</span></div>
                   </div>
                 </CardContent>
               </Card>

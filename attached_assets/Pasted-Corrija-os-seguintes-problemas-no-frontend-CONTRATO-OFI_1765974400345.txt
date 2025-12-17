@@ -1,0 +1,87 @@
+Corrija os seguintes problemas no frontend.
+
+CONTRATO OFICIAL (FONTE DA VERDADE):
+0xdB19da3BC195e32685136a63a3B014F74929dE64
+Rede: Arc Testnet (Chain ID 5042002)
+
+==============================
+PROBLEMA 1 — SPIN NÃO ESTÁ VINCULADO AO CONTRATO
+==============================
+
+Atualmente o SPIN do frontend está rodando com lógica local.
+
+CORREÇÃO OBRIGATÓRIA:
+- O frontend NÃO pode decidir o resultado do spin.
+- O resultado deve vir EXCLUSIVAMENTE do contrato on-chain.
+
+Ajustes necessários:
+1) Ao clicar em SPIN:
+   - Chamar a função `spin()` do contrato acima via ethers.js
+   - Aguardar a transação ser confirmada
+   - Ler o EVENTO emitido pelo contrato (ex: SpinExecuted / SpinResult)
+
+2) A roleta deve:
+   - Girar SOMENTE após o evento ser recebido
+   - Parar exatamente no prêmio retornado pelo contrato
+   - Nunca gerar prêmio no frontend
+
+Ou seja:
+- Contrato decide
+- Frontend apenas anima o resultado on-chain
+
+==============================
+PROBLEMA 2 — CONTADOR DE SPINS (5 / 5) ESTÁ ERRADO
+==============================
+
+Atualmente o frontend mostra "5 / 5" mesmo quando a wallet já fez todos os spins.
+
+Isso está errado porque:
+- O frontend NÃO está lendo o contrato
+- Está usando estado local ou lógica off-chain
+
+CORREÇÃO OBRIGATÓRIA:
+- O contador de spins deve ser calculado EXCLUSIVAMENTE a partir do contrato.
+
+Ajustes necessários:
+1) Ler do contrato:
+   - Quantos spins a wallet já fez hoje
+   - Timestamp do último spin
+
+2) Calcular no frontend:
+   spinsLeft = MAX_SPINS_PER_DAY - spinsToday(wallet)
+
+3) Se spinsLeft == 0:
+   - Desativar o botão SPIN
+   - Mostrar um timer regressivo até liberar novamente
+
+==============================
+TIMER DE 24 HORAS (OBRIGATÓRIO)
+==============================
+
+O timer deve ser baseado no contrato, não no frontend.
+
+Fluxo correto:
+- Ler `lastSpinTimestamp(wallet)` do contrato
+- Calcular:
+  timeLeft = (lastSpinTimestamp + 24h) - currentTime
+- Mostrar countdown em tempo real
+- Quando chegar a zero:
+  - Reativar botão SPIN
+  - Atualizar contador automaticamente
+
+==============================
+RESUMO FINAL
+==============================
+
+- Resultado do spin → vem do contrato
+- Quantidade de spins → vem do contrato
+- Cooldown de 24h → vem do contrato
+- Frontend apenas exibe e anima
+
+Não usar:
+- localStorage
+- estados fake
+- contadores locais
+
+Tudo deve refletir EXATAMENTE o estado on-chain do contrato:
+0xdB19da3BC195e32685136a63a3B014F74929dE64

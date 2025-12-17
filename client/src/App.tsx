@@ -49,6 +49,8 @@ export default function App() {
   const [lastSpinTimestamp, setLastSpinTimestamp] = useState<number>(0);
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
   const [isLoadingSpins, setIsLoadingSpins] = useState(false);
+  const [spinsError, setSpinsError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl, undefined, { staticNetwork: true }), []);
   
@@ -80,19 +82,21 @@ export default function App() {
   const fetchSpinsUsed = useCallback(async () => {
     if (!address) return;
     setIsLoadingSpins(true);
+    setSpinsError(null);
     try {
       const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Timeout")), 10000)
+        setTimeout(() => reject(new Error("Timeout")), 15000)
       );
       const spins = await Promise.race([
         contract.spinsUsedToday(address),
         timeoutPromise
       ]) as bigint;
       setSpinsUsedToday(Number(spins));
+      setSpinsError(null);
     } catch (error) {
       console.error("Error fetching spins used:", error);
-      setSpinsUsedToday(0);
+      setSpinsError("Failed to load spins from contract");
     } finally {
       setIsLoadingSpins(false);
     }
@@ -142,7 +146,7 @@ export default function App() {
     try {
       const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Timeout")), 10000)
+        setTimeout(() => reject(new Error("Timeout")), 15000)
       );
       const timestamp = await Promise.race([
         contract.lastSpinTimestamp(address),
@@ -151,9 +155,24 @@ export default function App() {
       setLastSpinTimestamp(Number(timestamp));
     } catch (error) {
       console.error("Error fetching last spin timestamp:", error);
-      setLastSpinTimestamp(0);
     }
   }, [address, arcReadProvider]);
+
+  const refreshAllData = useCallback(async () => {
+    if (!address) return;
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchSpinsUsed(),
+        fetchPendingReward(),
+        fetchLastSpinTimestamp(),
+        fetchContractBalance(),
+        fetchBalance()
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [address, fetchSpinsUsed, fetchPendingReward, fetchLastSpinTimestamp, fetchContractBalance, fetchBalance]);
 
   useEffect(() => {
     if (spinsLeft !== null && spinsLeft === 0 && lastSpinTimestamp > 0) {
@@ -537,6 +556,16 @@ export default function App() {
   }, [address, fetchSpinsUsed, fetchPendingReward, fetchLastSpinTimestamp]);
 
   useEffect(() => {
+    if (spinsError && address && !isLoadingSpins) {
+      const retryTimeout = setTimeout(() => {
+        console.log("Auto-retrying to fetch spins...");
+        fetchSpinsUsed();
+      }, 5000);
+      return () => clearTimeout(retryTimeout);
+    }
+  }, [spinsError, address, isLoadingSpins, fetchSpinsUsed]);
+
+  useEffect(() => {
     if (isConnected && isOnArcNetwork) {
       fetchBalance();
     }
@@ -585,7 +614,7 @@ export default function App() {
     autoConnectAndSwitchNetwork();
   }, []);
 
-  const canSpin = isConnected && isOnArcNetwork && spinsLeft !== null && spinsLeft > 0 && !isSpinning && !isLoadingSpins;
+  const canSpin = isConnected && isOnArcNetwork && spinsLeft !== null && spinsLeft > 0 && !isSpinning && !isLoadingSpins && !spinsError;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 relative overflow-hidden">
@@ -755,24 +784,64 @@ export default function App() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
                         <RotateCcw className="w-4 h-4" /> Spins Left Today
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={refreshAllData}
+                          disabled={isRefreshing || isLoadingSpins}
+                          className="ml-2"
+                          data-testid="button-refresh"
+                        >
+                          <RotateCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        </Button>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-center">
-                        <div className="text-4xl font-bold" data-testid="text-spins-left">
-                          {spinsLeft !== null ? (
-                            <>
+                        {spinsError ? (
+                          <div className="space-y-2">
+                            <div className="text-red-500 flex items-center justify-center gap-2" data-testid="text-spins-error">
+                              <AlertCircle className="w-5 h-5" />
+                              <span className="text-sm">Failed to load from contract</span>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={refreshAllData}
+                              disabled={isRefreshing}
+                              data-testid="button-retry"
+                            >
+                              {isRefreshing ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Retrying...
+                                </>
+                              ) : (
+                                <>
+                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                  Retry
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        ) : isLoadingSpins ? (
+                          <div className="text-muted-foreground flex items-center justify-center gap-2" data-testid="text-spins-loading">
+                            <Loader2 className="w-6 h-6 animate-spin" /> Loading from contract...
+                          </div>
+                        ) : spinsLeft !== null ? (
+                          <>
+                            <div className="text-4xl font-bold" data-testid="text-spins-left">
                               <span className={spinsLeft > 0 ? "text-green-500" : "text-red-500"}>{spinsLeft}</span>
                               <span className="text-muted-foreground"> / {MAX_SPINS_PER_DAY}</span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground flex items-center justify-center gap-2">
-                              <Loader2 className="w-6 h-6 animate-spin" /> Loading...
-                            </span>
-                          )}
-                        </div>
-                        {spinsLeft === 0 && (
-                          <p className="text-xs text-muted-foreground mt-2">Come back tomorrow for more spins!</p>
+                            </div>
+                            {spinsLeft === 0 && (
+                              <p className="text-xs text-muted-foreground mt-2">Come back tomorrow for more spins!</p>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-muted-foreground flex items-center justify-center gap-2">
+                            <Loader2 className="w-6 h-6 animate-spin" /> Loading...
+                          </div>
                         )}
                       </div>
                     </CardContent>

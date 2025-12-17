@@ -46,6 +46,8 @@ export default function App() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [lastWinAmount, setLastWinAmount] = useState<number>(0);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [lastSpinTimestamp, setLastSpinTimestamp] = useState<number>(0);
+  const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
 
   const spinsLeft = MAX_SPINS_PER_DAY - spinsUsedToday;
 
@@ -122,9 +124,63 @@ export default function App() {
     }
   }, [provider, address, isOnArcNetwork]);
 
+  const fetchLastSpinTimestamp = useCallback(async () => {
+    if (!provider || !address || !isOnArcNetwork) return;
+    try {
+      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, provider);
+      const timestamp = await contract.lastSpinTimestamp(address);
+      setLastSpinTimestamp(Number(timestamp));
+    } catch (error) {
+      console.error("Error fetching last spin timestamp:", error);
+      setLastSpinTimestamp(0);
+    }
+  }, [provider, address, isOnArcNetwork]);
+
+  useEffect(() => {
+    if (spinsLeft === 0 && lastSpinTimestamp > 0) {
+      let hasTriggeredRefresh = false;
+      
+      const calculateCountdown = () => {
+        const now = Math.floor(Date.now() / 1000);
+        const resetTime = lastSpinTimestamp + 24 * 60 * 60;
+        const remaining = resetTime - now;
+        
+        if (remaining <= 0) {
+          setCountdown(null);
+          if (!hasTriggeredRefresh) {
+            hasTriggeredRefresh = true;
+            if (provider && address && isOnArcNetwork) {
+              const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, provider);
+              contract.spinsUsedToday(address).then((spins: bigint) => {
+                setSpinsUsedToday(Number(spins));
+              }).catch(console.error);
+              contract.lastSpinTimestamp(address).then((timestamp: bigint) => {
+                setLastSpinTimestamp(Number(timestamp));
+              }).catch(console.error);
+            }
+          }
+          return;
+        }
+        
+        const hours = Math.floor(remaining / 3600);
+        const minutes = Math.floor((remaining % 3600) / 60);
+        const seconds = remaining % 60;
+        
+        setCountdown({ hours, minutes, seconds });
+      };
+      
+      calculateCountdown();
+      const interval = setInterval(calculateCountdown, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCountdown(null);
+    }
+  }, [spinsLeft, lastSpinTimestamp, provider, address, isOnArcNetwork]);
+
   const claimReward = async () => {
     if (!provider || !address || pendingReward <= BigInt(0)) return;
     
+    const claimedAmount = formatUSDC(pendingReward);
     setIsClaiming(true);
     try {
       const signer = await provider.getSigner();
@@ -139,19 +195,24 @@ export default function App() {
       
       toast({
         title: "Claiming...",
-        description: "Waiting for confirmation...",
+        description: "Sending your reward to your wallet...",
       });
 
       await tx.wait();
       
+      setShowWinDialog(false);
+      setWonPrize(null);
+      setPendingReward(BigInt(0));
+      
       toast({
-        title: "Reward Claimed!",
-        description: `Successfully claimed ${formatUSDC(pendingReward)} USDC!`,
+        title: "Reward Claimed Successfully!",
+        description: `${claimedAmount} USDC has been sent to your wallet!`,
+        duration: 8000,
       });
 
-      setPendingReward(BigInt(0));
       fetchBalance();
       fetchContractBalance();
+      fetchPendingReward();
     } catch (error: any) {
       if (error.code === "ACTION_REJECTED" || error.code === 4001) {
         toast({
@@ -349,17 +410,11 @@ export default function App() {
         setWonPrize(prize);
         setShowWinDialog(true);
         
-        if (serverMessage && rewardValue > 0) {
-          toast({
-            title: "You Won!",
-            description: serverMessage,
-          });
-        }
-        
         fetchBalance();
         fetchSpinsUsed();
         fetchPendingReward();
         fetchContractBalance();
+        fetchLastSpinTimestamp();
       }, 4000);
 
     } catch (error: any) {
@@ -431,8 +486,9 @@ export default function App() {
       fetchBalance();
       fetchSpinsUsed();
       fetchPendingReward();
+      fetchLastSpinTimestamp();
     }
-  }, [isConnected, isOnArcNetwork, fetchBalance, fetchSpinsUsed, fetchPendingReward]);
+  }, [isConnected, isOnArcNetwork, fetchBalance, fetchSpinsUsed, fetchPendingReward, fetchLastSpinTimestamp]);
 
   useEffect(() => {
     fetchContractBalance();
@@ -721,7 +777,28 @@ export default function App() {
                     <Clock className="h-4 w-4 text-red-500" />
                     <AlertTitle className="text-red-500">Daily Limit Reached</AlertTitle>
                     <AlertDescription className="text-red-400">
-                      You have used all 5 spins for today. Come back in 24 hours for more spins!
+                      <p className="mb-3">You have used all {MAX_SPINS_PER_DAY} spins for today.</p>
+                      {countdown && (
+                        <div className="flex items-center gap-2">
+                          <span>Next spins available in:</span>
+                          <div className="flex gap-1 font-mono text-lg font-bold text-red-500" data-testid="text-countdown">
+                            <div className="bg-red-500/20 rounded px-2 py-1">
+                              {String(countdown.hours).padStart(2, '0')}
+                            </div>
+                            <span className="text-red-400">:</span>
+                            <div className="bg-red-500/20 rounded px-2 py-1">
+                              {String(countdown.minutes).padStart(2, '0')}
+                            </div>
+                            <span className="text-red-400">:</span>
+                            <div className="bg-red-500/20 rounded px-2 py-1">
+                              {String(countdown.seconds).padStart(2, '0')}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {!countdown && (
+                        <p>Come back tomorrow for more spins!</p>
+                      )}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -783,13 +860,16 @@ export default function App() {
       </div>
 
       <Dialog open={showWinDialog} onOpenChange={setShowWinDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl">
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="text-center">
+            <DialogTitle className="flex items-center justify-center gap-3 text-3xl">
               {wonPrize && wonPrize.value > 0 ? (
                 <>
-                  <PartyPopper className="w-6 h-6 text-yellow-500" />
-                  Congratulations!
+                  <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
+                  <span className="bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
+                    Congratulations!
+                  </span>
+                  <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
                 </>
               ) : (
                 <>
@@ -798,61 +878,69 @@ export default function App() {
                 </>
               )}
             </DialogTitle>
-            <DialogDescription className="text-lg pt-4">
-              {wonPrize && wonPrize.value > 0 ? (
-                <>You won <span className="font-bold text-green-500 text-2xl">{wonPrize.value} USDC</span>!</>
-              ) : (
-                <>You didn't win this time. Keep spinning!</>
-              )}
-            </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center py-6">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: wonPrize?.color || "#374151" }}>
-              {wonPrize && wonPrize.value > 0 ? (
-                <Trophy className="w-12 h-12 text-white" />
-              ) : (
-                <AlertCircle className="w-12 h-12 text-white" />
-              )}
-            </div>
-            {wonPrize && wonPrize.value > 0 && (
-              <div className="text-center space-y-3">
-                <p className="text-muted-foreground">
-                  Your prize of <span className="font-bold text-green-500">{lastWinAmount} USDC</span> is ready!
+          <div className="flex flex-col items-center py-8">
+            {wonPrize && wonPrize.value > 0 ? (
+              <>
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full flex items-center justify-center mb-6 shadow-2xl animate-pulse" 
+                       style={{ backgroundColor: wonPrize.color, boxShadow: `0 0 40px ${wonPrize.color}50` }}>
+                    <Trophy className="w-16 h-16 text-white drop-shadow-lg" />
+                  </div>
+                  <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-spin" style={{ animationDuration: '3s' }} />
+                  <Sparkles className="absolute -bottom-2 -left-2 w-6 h-6 text-yellow-400 animate-spin" style={{ animationDuration: '2s' }} />
+                </div>
+                <div className="text-center space-y-4">
+                  <p className="text-muted-foreground text-lg">You won</p>
+                  <div className="text-5xl font-bold text-green-500 animate-pulse" data-testid="text-won-amount">
+                    {lastWinAmount} USDC
+                  </div>
+                  <p className="text-muted-foreground">
+                    Click the button below to claim your prize to your wallet!
+                  </p>
+                  {lastTxHash && (
+                    <a 
+                      href={`${ARC_TESTNET.explorer}/tx/${lastTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
+                      data-testid="link-tx-hash"
+                    >
+                      View Transaction on Explorer
+                    </a>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-24 h-24 rounded-full flex items-center justify-center mb-4 bg-muted">
+                  <AlertCircle className="w-12 h-12 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground text-center">
+                  You didn't win this time. Keep spinning for a chance to win USDC!
                 </p>
-                {lastTxHash && (
-                  <a 
-                    href={`${ARC_TESTNET.explorer}/tx/${lastTxHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors block"
-                    data-testid="link-tx-hash"
-                  >
-                    View Transaction
-                  </a>
-                )}
-              </div>
+              </>
             )}
           </div>
-          <DialogFooter className="flex flex-col gap-2 sm:flex-col">
+          <DialogFooter className="flex flex-col gap-3 sm:flex-col">
             {wonPrize && wonPrize.value > 0 && pendingReward > BigInt(0) && (
               <Button 
                 onClick={() => {
-                  setShowWinDialog(false);
-                  setWonPrize(null);
                   claimReward();
                 }}
                 disabled={isClaiming}
-                className="w-full bg-green-500 hover:bg-green-400 text-black font-bold"
+                size="lg"
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-black font-bold text-lg py-6"
                 data-testid="button-claim-dialog"
               >
                 {isClaiming ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Claiming...
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Claiming to Your Wallet...
                   </>
                 ) : (
                   <>
-                    <Gift className="w-4 h-4 mr-2" />
+                    <Gift className="w-5 h-5 mr-2" />
                     Claim {formatUSDC(pendingReward)} USDC Now
                   </>
                 )}

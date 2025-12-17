@@ -44,6 +44,13 @@ export const SPIN_CONTRACT_ABI = [
     stateMutability: "view",
   },
   {
+    type: "function",
+    name: "lastSpinTimestamp",
+    inputs: [{ name: "user", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
     type: "event",
     name: "SpinResult",
     inputs: [

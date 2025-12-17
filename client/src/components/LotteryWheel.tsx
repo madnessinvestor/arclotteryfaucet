@@ -50,7 +50,7 @@ export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: Lottery
     <div className="relative flex flex-col items-center">
       <div className="absolute -top-2 z-20 w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-yellow-400 drop-shadow-lg" />
       
-      <div className="relative w-[320px] h-[320px] md:w-[400px] md:h-[400px]">
+      <div className="relative w-[360px] h-[360px] md:w-[480px] md:h-[480px]">
         <div
           ref={wheelRef}
           className="w-full h-full rounded-full border-4 border-yellow-500/50 shadow-2xl overflow-hidden"
@@ -77,8 +77,8 @@ export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: Lottery
               
               const midAngle = startAngle + segmentAngle / 2;
               const midRad = (midAngle * Math.PI) / 180;
-              const textX = 50 + 32 * Math.cos(midRad);
-              const textY = 50 + 32 * Math.sin(midRad);
+              const textX = 50 + 35 * Math.cos(midRad);
+              const textY = 50 + 35 * Math.sin(midRad);
               
               return (
                 <g key={prize.id}>
@@ -92,11 +92,11 @@ export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: Lottery
                     x={textX}
                     y={textY}
                     fill="white"
-                    fontSize={prize.value >= 100 ? "3.5" : "4"}
+                    fontSize={prize.value >= 100 ? "4" : "4.5"}
                     fontWeight="bold"
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
+                    transform={`rotate(${midAngle}, ${textX}, ${textY})`}
                     style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
                   >
                     {prize.label}
@@ -104,7 +104,7 @@ export function LotteryWheel({ onSpin, disabled, isSpinning, rotation }: Lottery
                 </g>
               );
             })}
-            <circle cx="50" cy="50" r="12" fill="url(#centerGradient)" stroke="#FFD700" strokeWidth="0.5" />
+            <circle cx="50" cy="50" r="10" fill="url(#centerGradient)" stroke="#FFD700" strokeWidth="0.5" />
             <defs>
               <radialGradient id="centerGradient" cx="50%" cy="30%" r="70%">
                 <stop offset="0%" stopColor="#4a4a4a" />

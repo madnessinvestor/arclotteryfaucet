@@ -1,0 +1,102 @@
+Create a complete Web3 frontend using React + Vite and ethers.js.
+
+This project is a SPIN LOTTERY GAME running on Arc Testnet.
+
+==============================
+NETWORK (MANDATORY)
+==============================
+
+Network Name: Arc Testnet
+Chain ID (decimal): 5042002
+Chain ID (hex): 0x4CFB32
+RPC URL: https://rpc.testnet.arc.network
+Explorer: https://testnet.arcscan.app
+Native Currency: USDC
+
+When the user connects the wallet:
+1) Detect the current network
+2) If not Arc Testnet, automatically request network switch
+3) If the network does not exist, automatically add it
+
+==============================
+WALLET
+==============================
+
+- Support MetaMask and Rabby (window.ethereum)
+- "Connect Wallet" button
+- Show connected address (short format)
+- Show USDC balance under the wallet
+- Balance must update after each spin
+
+==============================
+SMART CONTRACT
+==============================
+
+Spin Contract Address:
+0xdB19da3BC195e32685136a63a3B014F74929dE64
+
+ABI (use minimal ABI):
+- function spin(uint256 random)
+- function spinsUsedToday(address user) view returns (uint256)
+- event SpinResult(address indexed user, uint256 reward)
+
+==============================
+SPIN LOGIC
+==============================
+
+- Maximum 5 spins per wallet per 24 hours
+- Show on UI:
+  "Spins left today: X / 5"
+- Disable spin button when limit is reached
+- Automatically re-enable after 24h (read from contract)
+
+==============================
+SPIN WHEEL UI
+==============================
+
+- Animated circular wheel (Canvas or SVG)
+- Arrow/pointer fixed on top
+- Wheel spins 3–5 seconds with easing-out animation
+- The wheel MUST stop exactly on the reward returned by the contract
+- Frontend never decides the reward
+
+Prizes and chances displayed on UI:
+- 1000 USDC → 2%
+- 200 USDC → 3%
+- 100 USDC → 10%
+- 20 USDC → same logic as 100 USDC (lower chance)
+- 10 USDC → 10%
+- 5 USDC → 20%
+- Nothing → remaining %
+
+==============================
+SPIN FLOW
+==============================
+
+1) User clicks SPIN
+2) Generate random using crypto.getRandomValues
+3) Call spin(random) on contract
+4) Wallet opens for confirmation
+5) Wait for transaction confirmation
+6) Read SpinResult event
+7) Animate wheel and stop on the correct prize
+8) Update USDC balance and spins counter
+
+==============================
+UI / UX
+==============================
+
+- Dark mode
+- Modern Web3 casino style
+- Smooth animations
+- Clear feedback for win / lose
+- Show prize after spin
+
+==============================
+IMPORTANT RULES
+==============================
+
+- Frontend must NEVER calculate rewards
+- Contract is the single source of truth
+- No backend
+- Clean, organized and scalable code

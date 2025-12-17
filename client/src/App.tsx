@@ -262,28 +262,44 @@ export default function App() {
     if (!window.ethereum) return;
 
     const handleAccountsChanged = (...args: unknown[]) => {
-      const accounts = args[0] as string[];
-      if (accounts.length === 0) {
-        disconnectWallet();
-      } else {
-        setAddress(accounts[0]);
+      try {
+        const accounts = args[0] as string[];
+        if (accounts.length === 0) {
+          disconnectWallet();
+        } else {
+          setAddress(accounts[0]);
+        }
+      } catch (e) {
+        console.warn("Error handling account change:", e);
       }
     };
 
     const handleChainChanged = () => {
-      checkNetwork();
-      if (provider && address) {
-        fetchBalance();
-        fetchSpinsUsed();
+      try {
+        checkNetwork();
+        if (provider && address) {
+          fetchBalance();
+          fetchSpinsUsed();
+        }
+      } catch (e) {
+        console.warn("Error handling chain change:", e);
       }
     };
 
-    window.ethereum.on("accountsChanged", handleAccountsChanged);
-    window.ethereum.on("chainChanged", handleChainChanged);
+    try {
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      window.ethereum.on("chainChanged", handleChainChanged);
+    } catch (e) {
+      console.warn("Error setting up wallet listeners:", e);
+    }
 
     return () => {
-      window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
-      window.ethereum?.removeListener("chainChanged", handleChainChanged);
+      try {
+        window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
+        window.ethereum?.removeListener("chainChanged", handleChainChanged);
+      } catch (e) {
+        console.warn("Error removing wallet listeners:", e);
+      }
     };
   }, [provider, address, checkNetwork, fetchBalance, fetchSpinsUsed]);
 

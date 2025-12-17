@@ -3,7 +3,7 @@ export const USDC_ADDRESS = "0x3600000000000000000000000000000000000000" as cons
 
 export const ARC_TESTNET = {
   chainId: 5042002,
-  chainIdHex: "0x4CFB32",
+  chainIdHex: "0x4CEF52",
   name: "Arc Testnet",
   rpcUrl: "https://rpc.testnet.arc.network",
   explorer: "https://testnet.arcscan.app",

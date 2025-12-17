@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { BrowserProvider, Contract, formatUnits } from "ethers";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { BrowserProvider, Contract, formatUnits, JsonRpcProvider } from "ethers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Wallet, Gift, AlertCircle, AlertTriangle, Clock, Trophy, Sparkles, PartyPopper, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { LotteryWheel, prizes, getPrizeIndexByValue, type Prize } from "./components/LotteryWheel";
+import { LotteryWheel, prizes, getPrizeIndexByBigInt, type Prize } from "./components/LotteryWheel";
 import { 
   SPIN_CONTRACT_ADDRESS, 
   USDC_ADDRESS, 
@@ -33,7 +33,7 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [isOnArcNetwork, setIsOnArcNetwork] = useState(false);
   const [walletBalance, setWalletBalance] = useState<bigint | undefined>();
-  const [spinsUsedToday, setSpinsUsedToday] = useState(0);
+  const [spinsUsedToday, setSpinsUsedToday] = useState<number | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
@@ -48,8 +48,11 @@ export default function App() {
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   const [lastSpinTimestamp, setLastSpinTimestamp] = useState<number>(0);
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+  const [isLoadingSpins, setIsLoadingSpins] = useState(false);
 
-  const spinsLeft = MAX_SPINS_PER_DAY - spinsUsedToday;
+  const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl), []);
+  
+  const spinsLeft = spinsUsedToday !== null ? MAX_SPINS_PER_DAY - spinsUsedToday : MAX_SPINS_PER_DAY;
 
   const checkNetwork = useCallback(async () => {
     if (!window.ethereum) return false;
@@ -75,15 +78,18 @@ export default function App() {
   }, [provider, address, isOnArcNetwork]);
 
   const fetchSpinsUsed = useCallback(async () => {
-    if (!provider || !address || !isOnArcNetwork) return;
+    if (!address) return;
+    setIsLoadingSpins(true);
     try {
-      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, provider);
+      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
       const spins = await contract.spinsUsedToday(address);
       setSpinsUsedToday(Number(spins));
     } catch (error) {
       console.error("Error fetching spins used:", error);
+    } finally {
+      setIsLoadingSpins(false);
     }
-  }, [provider, address, isOnArcNetwork]);
+  }, [address, arcReadProvider]);
 
   const fetchContractBalance = useCallback(async () => {
     try {
@@ -113,28 +119,28 @@ export default function App() {
   }, []);
 
   const fetchPendingReward = useCallback(async () => {
-    if (!provider || !address || !isOnArcNetwork) return;
+    if (!address) return;
     try {
-      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, provider);
+      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
       const pending = await contract.pendingRewards(address);
       setPendingReward(pending);
     } catch (error) {
       console.error("Error fetching pending rewards:", error);
       setPendingReward(BigInt(0));
     }
-  }, [provider, address, isOnArcNetwork]);
+  }, [address, arcReadProvider]);
 
   const fetchLastSpinTimestamp = useCallback(async () => {
-    if (!provider || !address || !isOnArcNetwork) return;
+    if (!address) return;
     try {
-      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, provider);
+      const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
       const timestamp = await contract.lastSpinTimestamp(address);
       setLastSpinTimestamp(Number(timestamp));
     } catch (error) {
       console.error("Error fetching last spin timestamp:", error);
       setLastSpinTimestamp(0);
     }
-  }, [provider, address, isOnArcNetwork]);
+  }, [address, arcReadProvider]);
 
   useEffect(() => {
     if (spinsLeft === 0 && lastSpinTimestamp > 0) {
@@ -147,17 +153,15 @@ export default function App() {
         
         if (remaining <= 0) {
           setCountdown(null);
-          if (!hasTriggeredRefresh) {
+          if (!hasTriggeredRefresh && address) {
             hasTriggeredRefresh = true;
-            if (provider && address && isOnArcNetwork) {
-              const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, provider);
-              contract.spinsUsedToday(address).then((spins: bigint) => {
-                setSpinsUsedToday(Number(spins));
-              }).catch(console.error);
-              contract.lastSpinTimestamp(address).then((timestamp: bigint) => {
-                setLastSpinTimestamp(Number(timestamp));
-              }).catch(console.error);
-            }
+            const contract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
+            contract.spinsUsedToday(address).then((spins: bigint) => {
+              setSpinsUsedToday(Number(spins));
+            }).catch(console.error);
+            contract.lastSpinTimestamp(address).then((timestamp: bigint) => {
+              setLastSpinTimestamp(Number(timestamp));
+            }).catch(console.error);
           }
           return;
         }
@@ -175,7 +179,7 @@ export default function App() {
     } else {
       setCountdown(null);
     }
-  }, [spinsLeft, lastSpinTimestamp, provider, address, isOnArcNetwork]);
+  }, [spinsLeft, lastSpinTimestamp, address, arcReadProvider]);
 
   const claimReward = async () => {
     if (!provider || !address || pendingReward <= BigInt(0)) return;
@@ -273,11 +277,13 @@ export default function App() {
     setIsConnected(false);
     setProvider(null);
     setWalletBalance(undefined);
-    setSpinsUsedToday(0);
+    setSpinsUsedToday(null);
     setIsOnArcNetwork(false);
+    setLastSpinTimestamp(0);
+    setCountdown(null);
   };
 
-  const switchToArcNetwork = async () => {
+  const switchToArcNetwork = useCallback(async () => {
     if (!window.ethereum) return;
     
     setIsSwitchingNetwork(true);
@@ -326,7 +332,7 @@ export default function App() {
     } finally {
       setIsSwitchingNetwork(false);
     }
-  };
+  }, []);
 
   const handleSpin = async () => {
     if (!provider || !address || isSpinning || spinsLeft <= 0) return;
@@ -371,8 +377,8 @@ export default function App() {
         }
       }
 
-      const rewardValue = Number(formatUnits(rewardAmount, 6));
-      const targetIndex = getPrizeIndexByValue(rewardValue);
+      const targetIndex = getPrizeIndexByBigInt(rewardAmount);
+      const rewardValue = Number(rewardAmount / BigInt(1000000));
       
       const segmentAngle = 360 / prizes.length;
       const minSpins = 5;
@@ -385,9 +391,8 @@ export default function App() {
       setLastWinAmount(rewardValue);
       setLastTxHash(receipt.hash);
 
-      let serverMessage = "";
       try {
-        const spinResultResponse = await fetch("/api/spin-result", {
+        await fetch("/api/spin-result", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -396,10 +401,6 @@ export default function App() {
             transactionHash: receipt.hash
           })
         });
-        if (spinResultResponse.ok) {
-          const spinResultData = await spinResultResponse.json();
-          serverMessage = spinResultData.message || "";
-        }
       } catch (e) {
         console.warn("Failed to log spin result:", e);
       }
@@ -482,13 +483,30 @@ export default function App() {
   }, [provider, address, checkNetwork, fetchBalance, fetchSpinsUsed]);
 
   useEffect(() => {
-    if (isConnected && isOnArcNetwork) {
-      fetchBalance();
+    if (address) {
       fetchSpinsUsed();
       fetchPendingReward();
       fetchLastSpinTimestamp();
     }
-  }, [isConnected, isOnArcNetwork, fetchBalance, fetchSpinsUsed, fetchPendingReward, fetchLastSpinTimestamp]);
+  }, [address, fetchSpinsUsed, fetchPendingReward, fetchLastSpinTimestamp]);
+
+  useEffect(() => {
+    if (isConnected && isOnArcNetwork) {
+      fetchBalance();
+    }
+  }, [isConnected, isOnArcNetwork, fetchBalance]);
+
+  const [hasAttemptedSwitch, setHasAttemptedSwitch] = useState(false);
+  
+  useEffect(() => {
+    if (isConnected && !isOnArcNetwork && !isSwitchingNetwork && !hasAttemptedSwitch) {
+      setHasAttemptedSwitch(true);
+      switchToArcNetwork();
+    }
+    if (isOnArcNetwork) {
+      setHasAttemptedSwitch(false);
+    }
+  }, [isConnected, isOnArcNetwork, isSwitchingNetwork, hasAttemptedSwitch, switchToArcNetwork]);
 
   useEffect(() => {
     fetchContractBalance();
@@ -568,7 +586,7 @@ export default function App() {
     autoConnectAndSwitchNetwork();
   }, []);
 
-  const canSpin = isConnected && isOnArcNetwork && spinsLeft > 0 && !isSpinning;
+  const canSpin = isConnected && isOnArcNetwork && spinsLeft > 0 && !isSpinning && !isLoadingSpins && spinsUsedToday !== null;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 relative overflow-hidden">

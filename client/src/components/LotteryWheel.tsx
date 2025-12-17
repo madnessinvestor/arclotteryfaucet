@@ -25,6 +25,21 @@ export const prizes: Prize[] = [
   { id: 11, label: "Nothing", value: 0, color: "#374151", chance: "~45%" },
 ];
 
+export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
+  const USDC_DIVISOR = BigInt(1000000);
+  const rewardValue = rewardBigInt / USDC_DIVISOR;
+  
+  const matchingPrizes = prizes.filter(p => BigInt(p.value) === rewardValue);
+  if (matchingPrizes.length === 0) {
+    const nothingPrizes = prizes.filter(p => p.value === 0);
+    if (nothingPrizes.length > 0) {
+      return nothingPrizes[Math.floor(Math.random() * nothingPrizes.length)].id;
+    }
+    return 1;
+  }
+  return matchingPrizes[Math.floor(Math.random() * matchingPrizes.length)].id;
+}
+
 export function getPrizeIndexByValue(value: number): number {
   const matchingPrizes = prizes.filter(p => p.value === value);
   if (matchingPrizes.length === 0) {

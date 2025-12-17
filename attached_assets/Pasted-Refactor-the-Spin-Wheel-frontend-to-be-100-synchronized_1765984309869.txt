@@ -1,0 +1,99 @@
+Refactor the Spin Wheel frontend to be 100% synchronized with the on-chain contract.
+
+CONTRACT (SOURCE OF TRUTH)
+- Network: Arc Testnet
+- Chain ID: 5042002
+- Contract address: 0xC33a57Af3BFDB148a8d198Fbe0b457f874519ca9
+- Event emitted: SpinPlayed(address player, uint256 reward, uint256 random)
+
+CRITICAL RULE:
+The frontend MUST NOT decide or simulate the result.
+The contract reward value is the ONLY source of truth.
+
+========================
+SPIN FLOW (MANDATORY)
+========================
+
+1) When user clicks SPIN:
+- Call spin(uint256 random)
+- Generate random only to pass to the contract
+- DO NOT spin the wheel yet
+- Show loading state: "Waiting for blockchain result..."
+
+2) Wait for:
+- transaction.wait()
+- Parse logs from the SAME transaction receipt
+- Find SpinPlayed event for msg.sender
+
+DO NOT:
+- Query past events
+- Use filters
+- Use provider.on listeners
+
+Use ONLY:
+receipt.logs + contract.interface.parseLog
+
+3) Extract:
+- reward (uint256)
+
+4) AFTER reward is known:
+- Start wheel animation
+- Spin duration: ~10 seconds
+- Ease-out animation
+- Wheel must stop EXACTLY on the segment that matches reward
+
+Reward mapping MUST be deterministic:
+- 1000 USDC → 1000 segment
+- 200 USDC → 200 segment
+- 100 USDC → 100 segment
+- 50 USDC → 50 segment
+- 20 USDC → 20 segment
+- 10 USDC → 10 segment
+- 0 → NO PRIZE segment
+
+The wheel position must be calculated from the reward value,
+not from randomness in the frontend.
+
+========================
+UI FEEDBACK
+========================
+
+After the wheel stops, show a clear message:
+
+If reward > 0:
+- "🎉 Congratulations!"
+- "You won X USDC"
+
+If reward == 0:
+- "😔 No luck this time"
+- "Try again tomorrow"
+
+========================
+ERROR HANDLING
+========================
+
+If SpinPlayed event is not found:
+- Show error: "Spin failed: result not found on-chain"
+- Do NOT animate the wheel
+- Do NOT show fake result
+
+========================
+SPINS LEFT
+========================
+
+- Read spinsLeft(address user) directly from contract
+- Display "Spins Left Today: X / 20"
+- Disable SPIN button if spinsLeft == 0
+- Show countdown until reset using:
+  - lastReset + 24h (from contract state)
+
+========================
+IMPORTANT
+========================
+
+- NEVER simulate outcomes in frontend
+- NEVER stop the wheel before the contract result
+- The wheel must visually reflect EXACTLY what the contract paid
+- UX must feel delayed and suspenseful (~10s), but correct
+
+This is a blockchain-driven game. Visuals follow the contract, not the opposite.

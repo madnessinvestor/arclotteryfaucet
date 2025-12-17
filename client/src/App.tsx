@@ -345,26 +345,43 @@ export default function App() {
       let rewardAmount = BigInt(0);
       let eventFound = false;
       
+      console.log("Transaction receipt:", receipt.hash);
+      console.log("Logs count:", receipt.logs.length);
+      
       for (const log of receipt.logs) {
         try {
+          if (log.address.toLowerCase() !== SPIN_CONTRACT_ADDRESS.toLowerCase()) {
+            continue;
+          }
+          
           const parsed = contract.interface.parseLog({
             topics: log.topics as string[],
             data: log.data,
           });
+          
+          console.log("Parsed log:", parsed?.name, parsed?.args);
+          
           if (parsed && parsed.name === "SpinPlayed") {
             const eventPlayer = parsed.args.player?.toLowerCase();
-            if (eventPlayer === address.toLowerCase()) {
+            const userAddress = address.toLowerCase();
+            
+            console.log("Event player:", eventPlayer, "User address:", userAddress);
+            
+            if (eventPlayer === userAddress) {
               rewardAmount = parsed.args.reward;
               eventFound = true;
+              console.log("SpinPlayed event found! Reward:", rewardAmount.toString());
               break;
             }
           }
-        } catch {
+        } catch (parseError) {
+          console.warn("Log parse error:", parseError);
           continue;
         }
       }
 
       if (!eventFound) {
+        console.error("SpinPlayed event not found. Logs:", receipt.logs);
         throw new Error("SpinPlayed event not found for your wallet");
       }
 

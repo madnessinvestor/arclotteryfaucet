@@ -58,6 +58,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLowLiquidity, setIsLowLiquidity] = useState(false);
   const [audioTriggered, setAudioTriggered] = useState(false);
+  const [isLoadingTotalSpins, setIsLoadingTotalSpins] = useState(false);
 
   const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl, undefined, { staticNetwork: true }), []);
 
@@ -108,22 +109,49 @@ export default function App() {
   }, [address, arcReadProvider]);
 
   const fetchContractBalance = useCallback(async () => {
+    setIsLoadingTotalSpins(true);
     try {
       const contract = new Contract(USDC_ADDRESS, USDC_ABI, arcReadProvider);
       const spinContract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
       
-      const [balance, total] = await Promise.all([
-        contract.balanceOf(SPIN_CONTRACT_ADDRESS),
-        spinContract.totalSpins().catch(() => BigInt(0))
-      ]);
-
+      // Fetch balance
+      const balance = await contract.balanceOf(SPIN_CONTRACT_ADDRESS);
       const balanceNumber = parseFloat(formatUnits(balance, 6));
       setContractBalanceRaw(balanceNumber);
       setContractBalance(balanceNumber.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-      setTotalSpins(Number(total));
       setIsLowLiquidity(balanceNumber < MIN_CONTRACT_BALANCE);
+      
+      // Fetch total spins - try totalSpins() method first, then fallback to counting events
+      try {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Timeout fetching totalSpins")), 10000)
+        );
+        const totalPromise = spinContract.totalSpins();
+        const total = await Promise.race([totalPromise, timeoutPromise]);
+        const totalSpinsNumber = Number(total);
+        setTotalSpins(totalSpinsNumber);
+        console.log("Contract data fetched successfully via totalSpins():", { balance: balanceNumber, totalSpins: totalSpinsNumber });
+      } catch (spinError) {
+        console.warn("Failed to fetch totalSpins via method, attempting to count SpinPlayed events:", spinError);
+        
+        // Fallback: Count SpinPlayed events to get total spins
+        try {
+          const filter = spinContract.filters.SpinPlayed();
+          const currentBlock = await arcReadProvider.getBlockNumber();
+          const events = await spinContract.queryFilter(filter, Math.max(0, currentBlock - 10000), currentBlock);
+          const totalSpinsFromEvents = events.length;
+          setTotalSpins(totalSpinsFromEvents);
+          console.log("Total spins determined from event count:", totalSpinsFromEvents);
+        } catch (eventError) {
+          console.error("Failed to count SpinPlayed events, setting to 0:", eventError);
+          setTotalSpins(0);
+        }
+      }
     } catch (error) {
-      console.error("Error fetching contract info:", error);
+      console.error("Error fetching contract balance:", error);
+      setTotalSpins(0);
+    } finally {
+      setIsLoadingTotalSpins(false);
     }
   }, [arcReadProvider]);
 
@@ -811,23 +839,33 @@ export default function App() {
                     </CardContent>
                   </Card>
 
-                  {totalSpins !== null && (
-                    <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20 w-full max-w-sm">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
-                          <RotateCcw className="w-4 h-4" /> Total Spins
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-purple-500" data-testid="text-total-spins">
-                            {totalSpins.toLocaleString()}
+                  <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20 w-full max-w-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
+                        <RotateCcw className="w-4 h-4" /> Total Spins
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center">
+                        {isLoadingTotalSpins ? (
+                          <div className="text-muted-foreground flex items-center justify-center gap-2" data-testid="text-total-spins-loading">
+                            <Loader2 className="w-6 h-6 animate-spin" /> Loading...
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">Global Counter</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                        ) : totalSpins !== null ? (
+                          <>
+                            <div className="text-3xl font-bold text-purple-500" data-testid="text-total-spins">
+                              {totalSpins.toLocaleString()}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Global Counter</p>
+                          </>
+                        ) : (
+                          <div className="text-muted-foreground text-sm" data-testid="text-total-spins-error">
+                            Unable to load
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 w-full max-w-sm">
                     <CardHeader className="pb-2">

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import somaRoletaPath from "@assets/Som_Roleta_1766809963528.mp3";
-import premioEncontradoPath from "@assets/Premio_Encontrado_1766809963528.mp3";
+import premioEncontradoPath from "@assets/Premio_Encontrado_(att)_1766810263092.mp3";
 import ganhoPath from "@assets/Ganho_1766809963528.mp3";
 import perdaPath from "@assets/Perda_1766809963528.mp3";
 

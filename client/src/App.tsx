@@ -385,6 +385,11 @@ export default function App() {
       const targetIndex = getPrizeIndexByBigInt(rewardAmount);
       const rewardValue = Number(rewardAmount / BigInt(1000000));
       
+      // 5 USDC check
+      if (rewardValue === 5) {
+        targetIndex = 6;
+      }
+      
       console.log(`Contract Result: ${rewardValue} USDC, landing on index: ${targetIndex}`);
       
       // 3. START THE ANIMATION NOW
@@ -398,17 +403,18 @@ export default function App() {
       
       // Calculate rotation to land exactly on the segment
       // CSS rotation is clockwise, segments are mapped counter-clockwise from top (-90deg)
-      // To land on index 'i', we need the wheel to be at: 360 - (i * segmentAngle) - (segmentAngle / 2)
-      // Index 0 (1000 USDC) should land at the top pointer (rotation should result in pointer at 0 degrees)
-      // The CSS transition 0 degrees corresponds to index 0 being at the top if we subtract -90 from startAngle in SVG.
-      // Actually, let's simplify: pointer is at top (fixed at 0 deg relative to screen).
-      // Segment 'i' covers [i*angle, (i+1)*angle]
-      // To center segment 'i' at the top, wheel rotation must be: -(i * angle + angle/2)
+      // Pointer is at the top (0 degrees).
+      // Segment 0 (1000 USDC) starts at -90deg and ends at -90 + angle.
+      // To align the middle of segment targetIndex with the top pointer:
+      // We need to rotate the wheel by: 360 - (targetIndex * angle + angle/2)
+      // because 0deg rotation in CSS aligns the start of the first segment (-90deg offset)
+      // to the 3 o'clock position usually, but we need the pointer at 12 o'clock.
       const targetAngle = 360 - (targetIndex * segmentAngle + segmentAngle / 2);
       
       const currentRotationMod = rotation % 360;
-      let additionalRotation = (targetAngle - currentRotationMod + 360) % 360;
+      let additionalRotation = (targetAngle - currentRotationMod + 720) % 360;
       
+      // Ensure it lands exactly
       const totalRotation = (spins * 360) + additionalRotation;
       
       setRotation(prev => prev + totalRotation);

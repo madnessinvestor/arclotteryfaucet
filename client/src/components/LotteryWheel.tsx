@@ -14,11 +14,11 @@ export const prizes: Prize[] = [
   { id: 0, label: "1000 USDC", value: 1000, color: "#FFD700", chance: "2%" },
   { id: 1, label: "200 USDC", value: 200, color: "#8b5cf6", chance: "3%" },
   { id: 2, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
-  { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
-  { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
-  { id: 5, label: "10 USDC", value: 10, color: "#3b82f6", chance: "15%" },
-  { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "20%" },
-  { id: 7, label: "0 USDC", value: 0, color: "#4B5563", chance: "20%" },
+  { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "5%" },
+  { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "5%" },
+  { id: 5, label: "10 USDC", value: 10, color: "#3b82f6", chance: "10%" },
+  { id: 6, label: "5 USDC", value: 5, color: "#10b981", chance: "15%" },
+  { id: 7, label: "0 USDC", value: 0, color: "#374151", chance: "50%" },
 ];
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
@@ -63,14 +63,14 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
     <div className="relative flex flex-col items-center">
       <div className="absolute -top-2 z-20 w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-yellow-400 drop-shadow-lg" />
       
-      <div className="relative w-[480px] h-[480px] md:w-[600px] md:h-[600px]">
+      <div className="relative w-[500px] h-[500px] md:w-[700px] md:h-[700px]">
         <div
           ref={wheelRef}
-          className="w-full h-full rounded-full border-8 border-yellow-500/50 shadow-2xl overflow-hidden"
+          className="w-full h-full rounded-full border-[12px] border-yellow-500 shadow-[0_0_100px_rgba(255,215,0,0.5)] overflow-hidden"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transition: isAnimating ? 'transform 10s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
-            boxShadow: '0 0 80px rgba(255, 215, 0, 0.4), inset 0 0 50px rgba(0,0,0,0.5)',
+            transition: isAnimating ? 'transform 10s cubic-bezier(0.15, 0, 0.15, 1)' : 'none',
+            boxShadow: '0 0 100px rgba(255, 215, 0, 0.5), inset 0 0 60px rgba(0,0,0,0.6)',
           }}
         >
           <svg viewBox="0 0 100 100" className="w-full h-full">

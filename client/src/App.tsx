@@ -382,7 +382,7 @@ export default function App() {
       setIsWaitingForBlockchain(false);
       
       // 2. Identify the prize
-      const targetIndex = getPrizeIndexByBigInt(rewardAmount);
+      let targetIndex = getPrizeIndexByBigInt(rewardAmount);
       const rewardValue = Number(rewardAmount / BigInt(1000000));
       
       // 5 USDC check

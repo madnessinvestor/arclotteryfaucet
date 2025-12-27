@@ -16,33 +16,16 @@ export const prizes: Prize[] = [
   { id: 2, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
   { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
   { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
-  { id: 5, label: "10 USDC", value: 10, color: "#FFD700", chance: "15%" },
-  { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "40%" },
+  { id: 5, label: "0 USDC", value: 0, color: "#374151", chance: "55%" },
 ];
 
-/**
- * 🚨 ESPECIFICAÇÃO TÉCNICA: Mapeamento determinístico de roll → índice da roleta
- * 
- * Regra absoluta: O contrato decide o resultado, o frontend apenas executa a animação.
- * O resultado é definido exclusivamente pelo evento SpinPlayed.
- * 
- * Tabela de mapeamento (roll = random % 100):
- * roll < 2   → 1000 USDC (índice 0)
- * roll < 5   → 200 USDC  (índice 1)
- * roll < 15  → 100 USDC  (índice 2)
- * roll < 25  → 50 USDC   (índice 3)
- * roll < 45  → 20 USDC   (índice 4)
- * roll < 60  → 10 USDC   (índice 5)
- * roll >= 60 → 0 USDC    (índice 6)
- */
 export function getPrizeIndexByRoll(roll: number): number {
   if (roll < 2) return 0;   // 1000 USDC
   if (roll < 5) return 1;   // 200 USDC
   if (roll < 15) return 2;  // 100 USDC
   if (roll < 25) return 3;  // 50 USDC
   if (roll < 45) return 4;  // 20 USDC
-  if (roll < 60) return 5;  // 10 USDC
-  return 6;                // 0 USDC
+  return 5;                // 0 USDC
 }
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
@@ -55,9 +38,7 @@ export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
     case 100:  return 2;
     case 50:   return 3;
     case 20:   return 4;
-    case 10:   return 5;
-    case 0:    return 6;
-    default:   return 6;
+    default:   return 5;
   }
 }
 
@@ -196,12 +177,8 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
           <span className="text-muted-foreground">20 USDC (20%)</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FFD700" }} />
-          <span className="text-muted-foreground">10 USDC (15%)</span>
-        </div>
-        <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#374151" }} />
-          <span className="text-muted-foreground">Nothing (40%)</span>
+          <span className="text-muted-foreground">Nothing (55%)</span>
         </div>
       </div>
     </div>

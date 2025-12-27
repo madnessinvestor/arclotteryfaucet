@@ -15,19 +15,19 @@ export const prizes: Prize[] = [
   { id: 1, label: "200 USDC", value: 200, color: "#8b5cf6", chance: "3%" },
   { id: 2, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
   { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
-  { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
-  { id: 5, label: "10 USDC", value: 10, color: "#FFD700", chance: "15%" },
+  { id: 4, label: "75 USDC", value: 75, color: "#06b6d4", chance: "20%" },
+  { id: 5, label: "100 USDC", value: 100, color: "#FFD700", chance: "15%" },
   { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "40%" },
 ];
 
 export function getPrizeIndexByRoll(roll: number): number {
-  if (roll <= 1) return 0;   // 0-1   -> 1000 USDC
-  if (roll <= 4) return 1;   // 2-4   -> 200 USDC
-  if (roll <= 14) return 2;  // 5-14  -> 100 USDC
-  if (roll <= 24) return 3;  // 15-24 -> 50 USDC
-  if (roll <= 44) return 4;  // 25-44 -> 20 USDC
-  if (roll <= 59) return 5;  // 45-59 -> 10 USDC
-  return 6;                  // 60-99 -> 0 USDC
+  if (roll <= 1) return 0;   // 0-1   -> 1000 USDC (2%)
+  if (roll <= 4) return 1;   // 2-4   -> 200 USDC (3%)
+  if (roll <= 14) return 2;  // 5-14  -> 100 USDC (10%)
+  if (roll <= 24) return 3;  // 15-24 -> 50 USDC (10%)
+  if (roll <= 44) return 4;  // 25-44 -> 75 USDC (20%)
+  if (roll <= 59) return 5;  // 45-59 -> 100 USDC (15%)
+  return 6;                  // 60-99 -> 0 USDC (40%)
 }
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
@@ -39,9 +39,10 @@ export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
     case 200:  return 1;
     case 100:  return 2;
     case 50:   return 3;
-    case 20:   return 4;
-    case 10:   return 5;
-    default:   return 6;
+    case 75:   return 4;
+    default:   
+      if (rewardValue === 100) return 2; 
+      return 6;
   }
 }
 
@@ -183,11 +184,11 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#06b6d4" }} />
-          <span className="text-muted-foreground">20 USDC (20%)</span>
+          <span className="text-muted-foreground">75 USDC (20%)</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FFD700" }} />
-          <span className="text-muted-foreground">10 USDC (15%)</span>
+          <span className="text-muted-foreground">100 USDC (15%)</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#374151" }} />

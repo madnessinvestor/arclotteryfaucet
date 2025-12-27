@@ -57,8 +57,8 @@ export async function registerRoutes(
         BigInt(200) * BigInt(10 ** 6),
         BigInt(100) * BigInt(10 ** 6),
         BigInt(50) * BigInt(10 ** 6),
-        BigInt(20) * BigInt(10 ** 6),
-        BigInt(10) * BigInt(10 ** 6)
+        BigInt(75) * BigInt(10 ** 6),
+        BigInt(100) * BigInt(10 ** 6)
       ];
       
       const claims = (data.result as ArcscanTokenTransfer[])
@@ -129,8 +129,8 @@ export async function registerRoutes(
         BigInt(200) * BigInt(10 ** 6),
         BigInt(100) * BigInt(10 ** 6),
         BigInt(50) * BigInt(10 ** 6),
-        BigInt(20) * BigInt(10 ** 6),
-        BigInt(10) * BigInt(10 ** 6)
+        BigInt(75) * BigInt(10 ** 6),
+        BigInt(100) * BigInt(10 ** 6)
       ];
       
       const validClaims = (data.result as ArcscanTokenTransfer[])

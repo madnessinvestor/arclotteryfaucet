@@ -405,6 +405,8 @@ export default function App() {
       const currentRotationMod = rotation % 360;
       
       // Calculate additional rotation needed
+      // targetAngle is where we want to end up (0-360)
+      // currentRotationMod is where we are (0-360)
       let additionalRotation = (targetAngle - currentRotationMod + 360) % 360;
       
       // Add multiple full spins
@@ -429,6 +431,7 @@ export default function App() {
       }
 
       // Wait for animation to finish + 5 extra seconds as requested
+      // The CSS transition is 10s
       setTimeout(() => {
         setIsAnimating(false);
         setSpinStatus("");

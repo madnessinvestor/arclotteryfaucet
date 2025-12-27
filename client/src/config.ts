@@ -46,6 +46,13 @@ export const SPIN_CONTRACT_ABI = [
       { name: "timestamp", type: "uint256", indexed: false, internalType: "uint256" },
     ],
   },
+  {
+    type: "function",
+    name: "totalSpins",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
 ] as const;
 
 export const USDC_ABI = [

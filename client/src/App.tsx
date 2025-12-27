@@ -49,6 +49,7 @@ export default function App() {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [contractBalance, setContractBalance] = useState<string>("0.00");
   const [contractBalanceRaw, setContractBalanceRaw] = useState<number>(0);
+  const [totalSpins, setTotalSpins] = useState<number | null>(null);
   const [lastWinAmount, setLastWinAmount] = useState<number>(0);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
@@ -109,13 +110,20 @@ export default function App() {
   const fetchContractBalance = useCallback(async () => {
     try {
       const contract = new Contract(USDC_ADDRESS, USDC_ABI, arcReadProvider);
-      const balance = await contract.balanceOf(SPIN_CONTRACT_ADDRESS);
+      const spinContract = new Contract(SPIN_CONTRACT_ADDRESS, SPIN_CONTRACT_ABI, arcReadProvider);
+      
+      const [balance, total] = await Promise.all([
+        contract.balanceOf(SPIN_CONTRACT_ADDRESS),
+        spinContract.totalSpins().catch(() => BigInt(0))
+      ]);
+
       const balanceNumber = parseFloat(formatUnits(balance, 6));
       setContractBalanceRaw(balanceNumber);
       setContractBalance(balanceNumber.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      setTotalSpins(Number(total));
       setIsLowLiquidity(balanceNumber < MIN_CONTRACT_BALANCE);
     } catch (error) {
-      console.error("Error fetching contract balance:", error);
+      console.error("Error fetching contract info:", error);
     }
   }, [arcReadProvider]);
 
@@ -802,6 +810,24 @@ export default function App() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {totalSpins !== null && (
+                    <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20 w-full max-w-sm">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
+                          <RotateCcw className="w-4 h-4" /> Total Spins
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-purple-500" data-testid="text-total-spins">
+                            {totalSpins.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">Global Counter</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 w-full max-w-sm">
                     <CardHeader className="pb-2">

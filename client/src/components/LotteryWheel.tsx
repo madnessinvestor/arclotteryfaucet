@@ -117,6 +117,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
                     fill={prize.color}
                     stroke="rgba(255,255,255,0.2)"
                     strokeWidth="0.3"
+                    className={prize.id === 0 ? "animate-neon-pulse" : ""}
                   />
                   <text
                     x={textX}
@@ -128,6 +129,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
                     dominantBaseline="middle"
                     transform={`rotate(${midAngle}, ${textX}, ${textY})`}
                     style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
+                    className={prize.id === 0 ? "animate-neon-text" : ""}
                   >
                     {prize.label}
                   </text>

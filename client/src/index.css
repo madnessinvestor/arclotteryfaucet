@@ -25,6 +25,31 @@
   
   --font-mono: 'Space Mono', 'JetBrains Mono', monospace;
   --font-sans: 'Inter', sans-serif;
+
+  --animate-neon-pulse: neon-pulse 1.5s ease-in-out infinite;
+  --animate-neon-text: neon-text 1.5s ease-in-out infinite;
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 2px #FFD700);
+    opacity: 1;
+  }
+  50% {
+    filter: brightness(1.8) drop-shadow(0 0 15px #FFD700);
+    opacity: 0.9;
+  }
+}
+
+@keyframes neon-text {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px #FFD700);
+    fill: #ffffff;
+  }
+  50% {
+    filter: drop-shadow(0 0 8px #FFD700);
+    fill: #FFD700;
+  }
 }
 
 @layer base {

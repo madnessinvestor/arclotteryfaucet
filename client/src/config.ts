@@ -58,5 +58,5 @@ export const USDC_ABI = [
   },
 ] as const;
 
-export const MAX_SPINS_PER_DAY = 20;
+export const MAX_SPINS_PER_DAY = 100;
 export const MIN_CONTRACT_BALANCE = 1000;

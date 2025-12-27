@@ -43,6 +43,7 @@ export const SPIN_CONTRACT_ABI = [
       { name: "player", type: "address", indexed: true, internalType: "address" },
       { name: "reward", type: "uint256", indexed: false, internalType: "uint256" },
       { name: "random", type: "uint256", indexed: false, internalType: "uint256" },
+      { name: "timestamp", type: "uint256", indexed: false, internalType: "uint256" },
     ],
   },
 ] as const;

@@ -137,18 +137,18 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
             <Button
               onClick={onSpin}
               disabled={isSpinBusy || disabled}
-              className="pointer-events-auto w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-lg font-bold shadow-xl border-4 border-yellow-300"
+              className="pointer-events-auto w-40 h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-3xl font-bold shadow-2xl border-8 border-yellow-300 transition-all active:scale-95"
               data-testid="button-spin"
             >
               {isWaitingForBlockchain ? (
-                <Loader2 className="w-8 h-8 animate-spin" />
+                <Loader2 className="w-16 h-16 animate-spin" />
               ) : isAnimating ? (
-                <Loader2 className="w-8 h-8 animate-spin" />
+                <Loader2 className="w-16 h-16 animate-spin" />
               ) : (
-                <>
-                  <Zap className="w-5 h-5 mr-1" />
-                  SPIN
-                </>
+                <div className="flex flex-col items-center gap-1">
+                  <Zap className="w-10 h-10" />
+                  <span>SPIN</span>
+                </div>
               )}
             </Button>
             {spinStatus && (

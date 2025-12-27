@@ -18,7 +18,7 @@ import {
   MAX_SPINS_PER_DAY,
   MIN_CONTRACT_BALANCE
 } from "./config";
-import { SiX, SiGithub, SiTelegram, SiDiscord } from "react-icons/si";
+import { SiX, SiGithub, SiTelegram, SiDiscord, SiYoutube, SiFarcaster, SiInstagram } from "react-icons/si";
 
 const formatUSDC = (value: bigint | undefined) => {
   if (!value) return "0.00";
@@ -870,29 +870,38 @@ export default function App() {
           </>
         )}
 
-        <footer className="border-t border-border/40 pt-6 mt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Gift className="w-4 h-4" />
-              <span>Arc Spin Lottery - Testnet Only</span>
+        <footer className="mt-12 py-8 border-t border-border/40 text-center space-y-6">
+          <div className="flex flex-col items-center gap-4">
+            <h2 className="text-xl font-bold tracking-tight text-white font-mono">Arc Spin Lottery</h2>
+            <div className="flex items-center justify-center gap-6">
+              <a href="https://x.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-x">
+                <SiX className="w-6 h-6" />
+              </a>
+              <a href="https://github.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-github">
+                <SiGithub className="w-6 h-6" />
+              </a>
+              <a href="https://www.youtube.com/@madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-youtube">
+                <SiYoutube className="w-6 h-6" />
+              </a>
+              <a href="https://farcaster.xyz/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-farcaster">
+                <SiFarcaster className="w-6 h-6" />
+              </a>
+              <a href="https://www.instagram.com/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-instagram">
+                <SiInstagram className="w-6 h-6" />
+              </a>
+              <a href="https://web.telegram.org/k/#@madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-telegram">
+                <SiTelegram className="w-6 h-6" />
+              </a>
+              <a href="https://discord.com/users/madnessinvestor" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-social-discord">
+                <SiDiscord className="w-6 h-6" />
+              </a>
             </div>
-            <div className="flex items-center gap-4">
-              <a href="https://x.com/ArcNetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-twitter">
-                <SiX className="w-5 h-5" />
-              </a>
-              <a href="https://discord.gg/arcnetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-discord">
-                <SiDiscord className="w-5 h-5" />
-              </a>
-              <a href="https://t.me/arcnetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-telegram">
-                <SiTelegram className="w-5 h-5" />
-              </a>
-              <a href="https://github.com/arcnetwork" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-github">
-                <SiGithub className="w-5 h-5" />
-              </a>
-            </div>
+            <p className="text-xs text-muted-foreground font-mono">
+              2025 Arc Spin Lottery - Built on Arc Network. All rights reserved.
+            </p>
           </div>
           <div className="text-center mt-4">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground/50">
               Contract: <a href={`${ARC_TESTNET.explorer}/address/${SPIN_CONTRACT_ADDRESS}`} target="_blank" rel="noopener noreferrer" className="font-mono hover:text-foreground transition-colors">{SPIN_CONTRACT_ADDRESS}</a>
             </p>
           </div>

@@ -23,7 +23,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Blockchain Integration
 - **Network**: Arc Testnet (Chain ID: 5042002, RPC: https://rpc.testnet.arc.network)
-- **Spin Contract**: `0xC33a57Af3BFDB148a8d198Fbe0b457f874519ca9`
+- **Spin Contract**: `0x737aA4096a61A155197f5Aa952a273143C90a0Cc`
 - **USDC Token**: `0x3600000000000000000000000000000000000000`
 - **Wallet Support**: MetaMask and Rabby (via window.ethereum)
 - **Block Explorer**: https://testnet.arcscan.app

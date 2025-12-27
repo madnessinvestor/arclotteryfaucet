@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertClaimHistorySchema } from "@shared/schema";
 
 const FAUCET_CONTRACT = "0xBd736A5D744A6364dd74B12Bb679d66360d7AeD9";
-const SPIN_CONTRACT = "0x044Fb0bD1347864507392C0c4db1B7290B2ac5DE";
+const SPIN_CONTRACT = "0x737aA4096a61A155197f5Aa952a273143C90a0Cc";
 const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
 const ARCSCAN_API = "https://testnet.arcscan.app/api";
 const ARC_RPC = "https://rpc.testnet.arc.network";

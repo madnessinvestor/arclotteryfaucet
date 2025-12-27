@@ -62,9 +62,9 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
 
   return (
     <div className="relative flex flex-col items-center">
-      <div className="absolute -top-2 z-20 w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-[#39FF14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]" />
+      <div className="absolute -top-2 z-20 w-0 h-0 border-l-[22px] border-r-[22px] border-t-[37px] border-l-transparent border-r-transparent border-t-[#39FF14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]" />
       
-      <div className="relative w-[281px] h-[281px] md:w-[394px] md:h-[394px]">
+      <div className="relative w-[422px] h-[422px] md:w-[591px] md:h-[591px]">
         <div
           ref={wheelRef}
           className="w-full h-full rounded-full border-[9px] border-yellow-500 shadow-[0_0_75px_rgba(255,215,0,0.5)] overflow-hidden"
@@ -135,17 +135,18 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
             <Button
               onClick={onSpin}
               disabled={isSpinBusy || disabled}
-              className="pointer-events-auto w-22 h-22 md:w-27 md:h-27 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-xl font-bold shadow-2xl border-6 border-yellow-300 transition-all active:scale-95 flex items-center justify-center p-0"
+              className="pointer-events-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-xl font-bold shadow-2xl border-6 border-yellow-300 transition-all active:scale-95 flex items-center justify-center p-0"
+              style={{ width: '132px', height: '132px' }}
               data-testid="button-spin"
             >
               {isWaitingForBlockchain || isAnimating ? (
                 <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="w-9 h-9 md:w-12 md:h-12 animate-spin" />
+                  <Loader2 className="animate-spin" style={{ width: '54px', height: '54px' }} />
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                  <Zap className="w-7 h-7" />
-                  <span className="text-lg">SPIN</span>
+                  <Zap style={{ width: '42px', height: '42px' }} />
+                  <span style={{ fontSize: '18px' }}>SPIN</span>
                 </div>
               )}
             </Button>

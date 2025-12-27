@@ -428,6 +428,7 @@ export default function App() {
         console.warn("Failed to log spin result:", e);
       }
 
+      // Wait for animation to finish + 5 extra seconds as requested
       setTimeout(() => {
         setIsAnimating(false);
         setSpinStatus("");
@@ -436,17 +437,17 @@ export default function App() {
         setShowWinDialog(true);
         
         toast({
-          title: rewardValue > 0 ? "Parabéns!" : "Que pena!",
+          title: rewardValue > 0 ? "Congratulations!" : "Better Luck Next Time!",
           description: rewardValue > 0 
-            ? `Você ganhou ${rewardValue} USDC!` 
-            : "Não foi dessa vez. Tente novamente!",
+            ? `You won ${rewardValue} USDC!` 
+            : "Keep spinning for a chance to win!",
         });
         
         fetchBalance();
         fetchSpinsLeft();
         fetchContractBalance();
         fetchNextReset();
-      }, 10000);
+      }, 15000); // 10s animation + 5s wait
 
     } catch (error: any) {
       setIsWaitingForBlockchain(false);
@@ -936,14 +937,14 @@ export default function App() {
                 <>
                   <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
                   <span className="bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
-                    PARABÉNS!
+                    Congratulations!
                   </span>
                   <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
                 </>
               ) : (
                 <>
                   <AlertCircle className="w-6 h-6 text-muted-foreground" />
-                  Não foi dessa vez!
+                  Better luck next time!
                 </>
               )}
             </DialogTitle>
@@ -960,12 +961,12 @@ export default function App() {
                   <Sparkles className="absolute -bottom-2 -left-2 w-6 h-6 text-yellow-400 animate-spin" style={{ animationDuration: '2s' }} />
                 </div>
                 <div className="text-center space-y-4">
-                  <p className="text-muted-foreground text-lg">Você ganhou</p>
+                  <p className="text-muted-foreground text-lg">You won</p>
                   <div className="text-5xl font-bold text-green-500 animate-pulse" data-testid="text-won-amount">
                     {lastWinAmount} USDC
                   </div>
                   <p className="text-muted-foreground">
-                    Seu prêmio foi enviado diretamente para sua carteira!
+                    Your reward has been sent directly to your wallet!
                   </p>
                   {lastTxHash && (
                     <a 
@@ -975,7 +976,7 @@ export default function App() {
                       className="text-xs text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
                       data-testid="link-tx-hash"
                     >
-                      Ver Transação no Explorer
+                      View Transaction on Explorer
                     </a>
                   )}
                 </div>
@@ -986,7 +987,7 @@ export default function App() {
                   <AlertCircle className="w-12 h-12 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground text-center">
-                  Não foi dessa vez. Continue tentando para ganhar prêmios em USDC!
+                  You didn't win this time. Keep spinning for a chance to win USDC!
                 </p>
               </>
             )}
@@ -1001,7 +1002,7 @@ export default function App() {
               className="w-full bg-yellow-500 text-black hover:bg-yellow-400 font-bold"
               data-testid="button-close-dialog"
             >
-              {spinsLeft !== null && spinsLeft > 0 ? "GIRAR NOVAMENTE!" : "FECHAR"}
+              {spinsLeft !== null && spinsLeft > 0 ? "SPIN AGAIN!" : "CLOSE"}
             </Button>
           </DialogFooter>
         </DialogContent>

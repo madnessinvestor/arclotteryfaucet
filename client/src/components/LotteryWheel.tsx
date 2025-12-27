@@ -62,11 +62,6 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
 
   return (
     <div className="relative flex flex-col items-center">
-      <div 
-        className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20 w-0 h-0 border-l-[22px] border-r-[22px] border-t-[37px] border-l-transparent border-r-transparent border-t-[#39FF14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]"
-        style={{ opacity: isSpinBusy ? 0.3 : 1, transition: 'opacity 0.3s ease' }}
-      />
-      
       <div className="relative w-[422px] h-[422px] md:w-[591px] md:h-[591px]">
         <div
           ref={wheelRef}
@@ -123,11 +118,11 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
                 </g>
               );
             })}
-            <circle cx="50" cy="50" r="10" fill="url(#centerGradient)" stroke="#FFD700" strokeWidth="0.5" />
+            <circle cx="50" cy="50" r="10" fill="url(#centerGradient)" stroke="#22C55E" strokeWidth="0.5" />
             <defs>
               <radialGradient id="centerGradient" cx="50%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="#4a4a4a" />
-                <stop offset="100%" stopColor="#1a1a1a" />
+                <stop offset="0%" stopColor="#4ade80" />
+                <stop offset="100%" stopColor="#16a34a" />
               </radialGradient>
             </defs>
           </svg>
@@ -138,7 +133,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
             <Button
               onClick={onSpin}
               disabled={isSpinBusy || disabled}
-              className="pointer-events-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-xl font-bold shadow-2xl border-6 border-yellow-300 transition-all active:scale-95 flex items-center justify-center p-0"
+              className="pointer-events-auto rounded-full bg-gradient-to-br from-green-400 to-green-600 text-black hover:from-green-300 hover:to-green-500 text-xl font-bold shadow-2xl border-6 border-green-300 transition-all active:scale-95 flex items-center justify-center p-0"
               style={{ width: '132px', height: '132px' }}
               data-testid="button-spin"
             >

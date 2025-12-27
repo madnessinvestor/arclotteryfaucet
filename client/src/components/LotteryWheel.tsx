@@ -135,7 +135,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
             <Button
               onClick={onSpin}
               disabled={isSpinBusy || disabled}
-              className="pointer-events-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-xl font-bold shadow-2xl border-6 border-yellow-300 transition-all active:scale-95 flex items-center justify-center p-0"
+              className="pointer-events-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-xl font-bold shadow-2xl border-6 border-green-500 transition-all active:scale-95 active:border-transparent flex items-center justify-center p-0"
               style={{ width: '132px', height: '132px' }}
               data-testid="button-spin"
             >

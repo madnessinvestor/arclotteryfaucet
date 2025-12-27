@@ -28,15 +28,6 @@
 
   --animate-neon-pulse: neon-pulse 1.5s ease-in-out infinite;
   --animate-neon-text: neon-text 1.5s ease-in-out infinite;
-  --animate-vibrate: vibrate 0.1s linear infinite;
-}
-
-@keyframes vibrate {
-  0% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-2px) rotate(-1deg); }
-  50% { transform: translateY(0) rotate(0deg); }
-  75% { transform: translateY(2px) rotate(1deg); }
-  100% { transform: translateY(0) rotate(0deg); }
 }
 
 @keyframes neon-pulse {

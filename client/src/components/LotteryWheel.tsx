@@ -65,6 +65,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20 w-0 h-0 border-l-[22px] border-r-[22px] border-t-[37px] border-l-transparent border-r-transparent border-t-[#39FF14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]" />
       
       <div className="relative w-[422px] h-[422px] md:w-[591px] md:h-[591px]">
+        {/* Container da roleta: apenas a roda (wheel) */}
         <div
           ref={wheelRef}
           className="w-full h-full rounded-full border-[9px] border-yellow-500 shadow-[0_0_75px_rgba(255,215,0,0.5)] overflow-hidden"
@@ -130,7 +131,8 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
           </svg>
         </div>
         
-        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-transform duration-300 ${isSpinBusy ? 'translate-y-20' : ''}`}>
+        {/* Container do botão: centralizado e estável */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
           <div className="flex flex-col items-center gap-2 relative">
             <Button
               onClick={onSpin}
@@ -152,7 +154,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
               </div>
             )}
             {spinStatus && !spinStatus.includes("disabled due to low contract liquidity") && (
-              <div className="pointer-events-none bg-black/80 rounded-lg px-3 py-1 text-center mt-40 mb-12">
+              <div className="pointer-events-none bg-black/80 rounded-lg px-3 py-1 text-center mt-40 mb-12 absolute whitespace-nowrap">
                 <span className="text-xs text-yellow-400 font-medium whitespace-pre-line leading-relaxed">
                   {spinStatus}
                 </span>

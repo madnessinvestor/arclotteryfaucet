@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.33;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract ArcSpinLottery is Ownable, ReentrancyGuard {
+
+    uint256 public constant MAX_SPINS_PER_DAY = 20;
+    uint256 public constant DAY = 1 days;
+
+    // USDC uses 6 decimals
+    uint256 public constant USDC_DECIMALS = 1e6;
+
+    // Minimum balance required to allow spins (1000 USDC)
+    uint256 public constant MIN_CONTRACT_BALANCE = 1000 * USDC_DECIMALS;
+
+    IERC20 public immutable USDC;
+
+    struct SpinInfo {
+        uint256 count;
+        uint256 lastReset;
+    }
+
+    mapping(address => SpinInfo) private _spins;
+
+    event SpinPlayed(
+        address indexed player,
+        uint256 reward,
+        uint256 random,
+        uint256 timestamp
+    );
+
+    event Withdraw(address indexed owner, uint256 amount);
+
+    constructor(address usdcAddress) Ownable(msg.sender) {
+        USDC = IERC20(usdcAddress);
+    }
+
+    // ============================
+    // SPIN
+    // ============================
+    function spin(uint256 random) external nonReentrant {
+        require(
+            USDC.balanceOf(address(this)) >= MIN_CONTRACT_BALANCE,
+            "Contract has insufficient USDC balance"
+        );
+
+        SpinInfo storage s = _spins[msg.sender];
+
+        // Reset after 24h
+        if (block.timestamp >= s.lastReset + DAY) {
+            s.count = 0;
+            s.lastReset = block.timestamp;
+        }
+
+        require(s.count < MAX_SPINS_PER_DAY, "Daily spin limit reached");
+
+        s.count++;
+
+        uint256 roll = random % 100;
+        uint256 reward;
+
+        /*
+        DISTRIBUTION (100%):
+        0–1   -> 1000 USDC (2%)
+        2–4   -> 200 USDC  (3%)
+        5–14  -> 100 USDC  (10%)
+        15–24 -> 50 USDC   (10%)
+        25–44 -> 20 USDC   (20%)
+        45–59 -> 10 USDC   (15%)
+        60–99 -> 0         (40%)
+        */
+
+        if (roll < 2) reward = 1000 * USDC_DECIMALS;
+        else if (roll < 5) reward = 200 * USDC_DECIMALS;
+        else if (roll < 15) reward = 100 * USDC_DECIMALS;
+        else if (roll < 25) reward = 50 * USDC_DECIMALS;
+        else if (roll < 45) reward = 20 * USDC_DECIMALS;
+        else if (roll < 60) reward = 10 * USDC_DECIMALS;
+        else reward = 0;
+
+        if (reward > 0) {
+            require(
+                USDC.balanceOf(address(this)) >= reward,
+                "Not enough USDC to pay reward"
+            );
+            USDC.transfer(msg.sender, reward);
+        }
+
+        emit SpinPlayed(msg.sender, reward, random, block.timestamp);
+    }
+
+    // ============================
+    // VIEW HELPERS
+    // ============================
+    function spinsLeft(address user) external view returns (uint256) {
+        SpinInfo memory s = _spins[user];
+
+        if (block.timestamp >= s.lastReset + DAY) {
+            return MAX_SPINS_PER_DAY;
+        }
+
+        return MAX_SPINS_PER_DAY - s.count;
+    }
+
+    function nextReset(address user) external view returns (uint256) {
+        SpinInfo memory s = _spins[user];
+        if (block.timestamp >= s.lastReset + DAY) {
+            return 0;
+        }
+        return (s.lastReset + DAY) - block.timestamp;
+    }
+
+    // ============================
+    // OWNER
+    // ============================
+    function withdraw(uint256 amount) external onlyOwner nonReentrant {
+        require(amount > 0, "Amount must be > 0");
+        require(
+            amount <= USDC.balanceOf(address(this)),
+            "Insufficient USDC balance"
+        );
+
+        USDC.transfer(owner(), amount);
+        emit Withdraw(owner(), amount);
+    }
+}

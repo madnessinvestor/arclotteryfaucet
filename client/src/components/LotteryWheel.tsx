@@ -11,18 +11,14 @@ export interface Prize {
 }
 
 export const prizes: Prize[] = [
-  { id: 0, label: "1000 USDC", value: 1000, color: "#FFD700" , chance: "2%" },
-  { id: 1, label: "Nothing", value: 0, color: "#374151", chance: "40%" },
-  { id: 2, label: "200 USDC", value: 200, color: "#8b5cf6", chance: "3%" },
-  { id: 3, label: "0 USDC", value: 0, color: "#4B5563", chance: "40%" },
-  { id: 4, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
-  { id: 5, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
-  { id: 6, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
-  { id: 7, label: "Nothing", value: 0, color: "#374151", chance: "40%" },
-  { id: 8, label: "10 USDC", value: 10, color: "#3b82f6", chance: "15%" },
-  { id: 9, label: "0 USDC", value: 0, color: "#4B5563", chance: "40%" },
-  { id: 10, label: "10 USDC", value: 10, color: "#3b82f6", chance: "15%" },
-  { id: 11, label: "Nothing", value: 0, color: "#374151", chance: "40%" },
+  { id: 0, label: "1000 USDC", value: 1000, color: "#FFD700", chance: "2%" },
+  { id: 1, label: "200 USDC", value: 200, color: "#8b5cf6", chance: "3%" },
+  { id: 2, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
+  { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
+  { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
+  { id: 5, label: "10 USDC", value: 10, color: "#3b82f6", chance: "15%" },
+  { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "40%" },
+  { id: 7, label: "0 USDC", value: 0, color: "#4B5563", chance: "40%" },
 ];
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {

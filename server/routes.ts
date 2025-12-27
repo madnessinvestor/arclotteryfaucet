@@ -52,12 +52,19 @@ export async function registerRoutes(
         return;
       }
       
-      const TARGET_VALUE = BigInt(200) * BigInt(10 ** 6);
+      const TARGET_VALUES = [
+        BigInt(1000) * BigInt(10 ** 6),
+        BigInt(200) * BigInt(10 ** 6),
+        BigInt(100) * BigInt(10 ** 6),
+        BigInt(50) * BigInt(10 ** 6),
+        BigInt(20) * BigInt(10 ** 6),
+        BigInt(10) * BigInt(10 ** 6)
+      ];
       
       const claims = (data.result as ArcscanTokenTransfer[])
         .filter((tx: ArcscanTokenTransfer) => {
           const fromLower = tx.from.toLowerCase();
-          const contractLower = FAUCET_CONTRACT.toLowerCase();
+          const contractLower = SPIN_CONTRACT.toLowerCase();
           const tokenLower = tx.contractAddress?.toLowerCase() || '';
           const usdcLower = USDC_ADDRESS.toLowerCase();
           
@@ -65,7 +72,7 @@ export async function registerRoutes(
             const valueBigInt = BigInt(tx.value);
             return fromLower === contractLower && 
                    tokenLower === usdcLower && 
-                   valueBigInt === TARGET_VALUE;
+                   TARGET_VALUES.includes(valueBigInt);
           } catch {
             return false;
           }
@@ -117,12 +124,19 @@ export async function registerRoutes(
         return;
       }
       
-      const TARGET_VALUE = BigInt(200) * BigInt(10 ** 6);
+      const TARGET_VALUES = [
+        BigInt(1000) * BigInt(10 ** 6),
+        BigInt(200) * BigInt(10 ** 6),
+        BigInt(100) * BigInt(10 ** 6),
+        BigInt(50) * BigInt(10 ** 6),
+        BigInt(20) * BigInt(10 ** 6),
+        BigInt(10) * BigInt(10 ** 6)
+      ];
       
       const validClaims = (data.result as ArcscanTokenTransfer[])
         .filter((tx: ArcscanTokenTransfer) => {
           const fromLower = tx.from.toLowerCase();
-          const contractLower = FAUCET_CONTRACT.toLowerCase();
+          const contractLower = SPIN_CONTRACT.toLowerCase();
           const tokenLower = tx.contractAddress?.toLowerCase() || '';
           const usdcLower = USDC_ADDRESS.toLowerCase();
           
@@ -130,7 +144,7 @@ export async function registerRoutes(
             const valueBigInt = BigInt(tx.value);
             return fromLower === contractLower && 
                    tokenLower === usdcLower && 
-                   valueBigInt === TARGET_VALUE;
+                   TARGET_VALUES.includes(valueBigInt);
           } catch {
             return false;
           }

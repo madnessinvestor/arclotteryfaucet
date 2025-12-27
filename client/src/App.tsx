@@ -412,9 +412,12 @@ export default function App() {
       
       console.log(`✅ SpinPlayed Event: ${rewardValue.toLocaleString('en-US')} USDC (Roll: ${roll}) → Index ${targetIndex}`);
       
+      // Play "prêmio encontrado" sound as soon as prize is identified
+      playAudio("found");
+      
       // 3. START THE ANIMATION NOW
       setIsAnimating(true);
-      setAudioTriggered(false);
+      setAudioTriggered(true);
       setSpinStatus("Spinning...");
       
       // Play spin sound immediately
@@ -444,14 +447,6 @@ export default function App() {
       setRotation(prev => prev + totalRotation);
       setLastWinAmount(rewardValue);
       setLastTxHash(receipt.hash);
-      
-      // Play "premio encontrado" sound at 9 seconds (before animation ends at 10s)
-      setTimeout(() => {
-        if (!audioTriggered) {
-          playAudio("found");
-          setAudioTriggered(true);
-        }
-      }, 9000);
 
       try {
         await fetch("/api/spin-result", {

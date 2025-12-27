@@ -855,35 +855,37 @@ export default function App() {
                 </div>
 
                 {spinsLeft === 0 && (
-                  <Alert className="bg-red-500/10 border-red-500/50">
-                    <Clock className="h-4 w-4 text-red-500" />
-                    <AlertTitle className="text-red-500">Daily Limit Reached</AlertTitle>
-                    <AlertDescription className="text-red-400">
-                      <p className="mb-3">You have used all {MAX_SPINS_PER_DAY} spins for today.</p>
-                      {countdown && (
-                        <div className="flex flex-col items-center gap-3">
-                          <span className="text-muted-foreground font-medium">Reset in:</span>
-                          <div className="flex gap-2 font-mono text-3xl font-bold text-yellow-500" data-testid="text-countdown">
-                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
-                              {String(countdown.hours).padStart(2, '0')}
+                  <div className="flex justify-center">
+                    <Alert className="bg-red-500/10 border-red-500/50 max-w-sm">
+                      <Clock className="h-4 w-4 text-red-500" />
+                      <AlertTitle className="text-red-500">Daily Limit Reached</AlertTitle>
+                      <AlertDescription className="text-red-400 text-center">
+                        <p className="mb-3">You have used all {MAX_SPINS_PER_DAY} spins for today.</p>
+                        {countdown && (
+                          <div className="flex flex-col items-center gap-3">
+                            <span className="text-muted-foreground font-medium">Reset in:</span>
+                            <div className="flex gap-2 font-mono text-3xl font-bold text-yellow-500" data-testid="text-countdown">
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
+                                {String(countdown.hours).padStart(2, '0')}
+                              </div>
+                              <span className="text-yellow-500/50 self-center">:</span>
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
+                                {String(countdown.minutes).padStart(2, '0')}
+                              </div>
+                              <span className="text-yellow-500/50 self-center">:</span>
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
+                                {String(countdown.seconds).padStart(2, '0')}
+                              </div>
                             </div>
-                            <span className="text-yellow-500/50 self-center">:</span>
-                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
-                              {String(countdown.minutes).padStart(2, '0')}
-                            </div>
-                            <span className="text-yellow-500/50 self-center">:</span>
-                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
-                              {String(countdown.seconds).padStart(2, '0')}
-                            </div>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Next 20 spins available after reset</p>
                           </div>
-                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Next 20 spins available after reset</p>
-                        </div>
-                      )}
-                      {!countdown && (
-                        <p>Come back tomorrow for more spins!</p>
-                      )}
-                    </AlertDescription>
-                  </Alert>
+                        )}
+                        {!countdown && (
+                          <p>Come back tomorrow for more spins!</p>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
                 )}
 
                 <div className="flex flex-col items-center py-8">

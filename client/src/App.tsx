@@ -690,7 +690,7 @@ export default function App() {
               <RotateCcw className="w-6 h-6 text-white animate-[spin_4s_linear_infinite]" />
             </div>
             <div>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase italic animate-neon-flicker" style={{ textShadow: '0 0 10px rgba(0,255,249,0.8)' }}>
+            <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-white uppercase italic animate-neon-flicker" style={{ textShadow: '0 0 10px rgba(168,85,247,0.8)' }}>
               ARC SPIN LOTTERY
             </h1>
               <p className="text-[10px] text-purple-400/80 uppercase tracking-[0.2em] font-bold">Win Free USDC</p>

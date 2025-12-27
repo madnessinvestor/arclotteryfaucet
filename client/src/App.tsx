@@ -399,17 +399,16 @@ export default function App() {
       // Calculate rotation to land exactly on the segment
       // CSS rotation is clockwise, segments are mapped counter-clockwise from top (-90deg)
       // To land on index 'i', we need the wheel to be at: 360 - (i * segmentAngle) - (segmentAngle / 2)
-      const targetAngle = (360 - (targetIndex * segmentAngle) - (segmentAngle / 2)) % 360;
+      // Index 0 (1000 USDC) should land at the top pointer (rotation should result in pointer at 0 degrees)
+      // The CSS transition 0 degrees corresponds to index 0 being at the top if we subtract -90 from startAngle in SVG.
+      // Actually, let's simplify: pointer is at top (fixed at 0 deg relative to screen).
+      // Segment 'i' covers [i*angle, (i+1)*angle]
+      // To center segment 'i' at the top, wheel rotation must be: -(i * angle + angle/2)
+      const targetAngle = 360 - (targetIndex * segmentAngle + segmentAngle / 2);
       
-      // Current rotation modulo 360
       const currentRotationMod = rotation % 360;
-      
-      // Calculate additional rotation needed
-      // targetAngle is where we want to end up (0-360)
-      // currentRotationMod is where we are (0-360)
       let additionalRotation = (targetAngle - currentRotationMod + 360) % 360;
       
-      // Add multiple full spins
       const totalRotation = (spins * 360) + additionalRotation;
       
       setRotation(prev => prev + totalRotation);
@@ -593,7 +592,7 @@ export default function App() {
       <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-purple-500/5 pointer-events-none" />
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50" />
       
-      <div className="max-w-4xl mx-auto space-y-8 relative z-10">
+      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
         
         <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/40 pb-6">
           <div className="flex items-center gap-3">

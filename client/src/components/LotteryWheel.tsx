@@ -17,8 +17,8 @@ export const prizes: Prize[] = [
   { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
   { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
   { id: 5, label: "10 USDC", value: 10, color: "#3b82f6", chance: "15%" },
-  { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "40%" },
-  { id: 7, label: "0 USDC", value: 0, color: "#4B5563", chance: "40%" },
+  { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "20%" },
+  { id: 7, label: "0 USDC", value: 0, color: "#4B5563", chance: "20%" },
 ];
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
@@ -63,14 +63,14 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
     <div className="relative flex flex-col items-center">
       <div className="absolute -top-2 z-20 w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-yellow-400 drop-shadow-lg" />
       
-      <div className="relative w-[360px] h-[360px] md:w-[480px] md:h-[480px]">
+      <div className="relative w-[480px] h-[480px] md:w-[600px] md:h-[600px]">
         <div
           ref={wheelRef}
-          className="w-full h-full rounded-full border-4 border-yellow-500/50 shadow-2xl overflow-hidden"
+          className="w-full h-full rounded-full border-8 border-yellow-500/50 shadow-2xl overflow-hidden"
           style={{
             transform: `rotate(${rotation}deg)`,
             transition: isAnimating ? 'transform 10s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
-            boxShadow: '0 0 60px rgba(255, 215, 0, 0.3), inset 0 0 30px rgba(0,0,0,0.3)',
+            boxShadow: '0 0 80px rgba(255, 215, 0, 0.4), inset 0 0 50px rgba(0,0,0,0.5)',
           }}
         >
           <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -105,12 +105,12 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
                     x={textX}
                     y={textY}
                     fill="white"
-                    fontSize={prize.value >= 100 ? "4" : "4.5"}
-                    fontWeight="bold"
+                    fontSize={prize.value >= 100 ? "5" : "5.5"}
+                    fontWeight="black"
                     textAnchor="middle"
                     dominantBaseline="middle"
                     transform={`rotate(${midAngle}, ${textX}, ${textY})`}
-                    style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+                    style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
                   >
                     {prize.label}
                   </text>

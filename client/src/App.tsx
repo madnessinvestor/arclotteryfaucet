@@ -121,7 +121,7 @@ export default function App() {
       setContractBalance(balanceNumber.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       setIsLowLiquidity(balanceNumber < MIN_CONTRACT_BALANCE);
       
-      // Fetch total spins - try totalSpins() method first, then fallback to counting events
+      // Fetch total spins - fallback to counting events immediately as a secondary source
       try {
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error("Timeout fetching totalSpins")), 10000)
@@ -138,10 +138,22 @@ export default function App() {
         try {
           const filter = spinContract.filters.SpinPlayed();
           const currentBlock = await arcReadProvider.getBlockNumber();
-          const events = await spinContract.queryFilter(filter, Math.max(0, currentBlock - 10000), currentBlock);
-          const totalSpinsFromEvents = events.length;
+          
+          const BATCH_SIZE = 10000;
+          const NUM_BATCHES = 5;
+          let totalSpinsFromEvents = 0;
+
+          for (let i = 0; i < NUM_BATCHES; i++) {
+            const endBlock = currentBlock - (i * BATCH_SIZE);
+            const startBlock = Math.max(0, endBlock - BATCH_SIZE);
+            if (endBlock <= 0) break;
+            
+            const events = await spinContract.queryFilter(filter, startBlock, endBlock);
+            totalSpinsFromEvents += events.length;
+          }
+
           setTotalSpins(totalSpinsFromEvents);
-          console.log("Total spins determined from event count:", totalSpinsFromEvents);
+          console.log("Total spins determined from event count batches:", totalSpinsFromEvents);
         } catch (eventError) {
           console.error("Failed to count SpinPlayed events, setting to 0:", eventError);
           setTotalSpins(0);
@@ -149,7 +161,6 @@ export default function App() {
       }
     } catch (error) {
       console.error("Error fetching contract balance:", error);
-      setTotalSpins(0);
     } finally {
       setIsLoadingTotalSpins(false);
     }

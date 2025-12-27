@@ -29,6 +29,12 @@
   --animate-neon-pulse: neon-pulse 3s ease-in-out infinite;
   --animate-neon-text: neon-text 1.5s ease-in-out infinite;
   --animate-neon-flicker: neon-pulse 3s ease-in-out infinite;
+  --color-neon-green: #39ff14;
+}
+
+.neon-green-text {
+  color: var(--color-neon-green);
+  text-shadow: 0 0 5px var(--color-neon-green), 0 0 10px var(--color-neon-green), 0 0 20px var(--color-neon-green);
 }
 
 @keyframes neon-pulse {

@@ -1085,7 +1085,7 @@ export default function App() {
                 </div>
                 <div className="text-center space-y-4">
                   <p className="text-muted-foreground text-lg">You won</p>
-                  <div className="text-5xl font-bold text-green-500 animate-pulse" data-testid="text-won-amount">
+                  <div className="text-5xl font-black neon-green-text" data-testid="text-won-amount">
                     {lastWinAmount.toLocaleString('en-US')} USDC
                   </div>
                   <p className="text-muted-foreground">

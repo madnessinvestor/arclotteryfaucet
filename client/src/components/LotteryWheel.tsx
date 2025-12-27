@@ -64,7 +64,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
     <div className="relative flex flex-col items-center">
       <div className="absolute -top-2 z-20 w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-yellow-400 drop-shadow-lg" />
       
-      <div className="relative w-[500px] h-[500px] md:w-[700px] md:h-[700px]">
+      <div className="relative w-[375px] h-[375px] md:w-[525px] md:h-[525px]">
         <div
           ref={wheelRef}
           className="w-full h-full rounded-full border-[12px] border-yellow-500 shadow-[0_0_100px_rgba(255,215,0,0.5)] overflow-hidden"
@@ -135,7 +135,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
             <Button
               onClick={onSpin}
               disabled={isSpinBusy || disabled}
-              className="pointer-events-auto w-40 h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-3xl font-bold shadow-2xl border-8 border-yellow-300 transition-all active:scale-95"
+              className="pointer-events-auto w-30 h-30 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-2xl font-bold shadow-2xl border-8 border-yellow-300 transition-all active:scale-95"
               data-testid="button-spin"
             >
               {isWaitingForBlockchain ? (

@@ -684,14 +684,14 @@ export default function App() {
       
       <div className="max-w-6xl mx-auto space-y-8 relative z-10">
         
-        <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/40 pb-6">
+        <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-purple-500/20 pb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center border border-yellow-500/50 shadow-lg">
-              <Gift className="w-6 h-6 text-black" />
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+              <RotateCcw className="w-6 h-6 text-white animate-[spin_4s_linear_infinite]" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight" data-testid="text-app-title">Arc Spin Lottery</h1>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">Win Free USDC</p>
+              <h1 className="text-2xl font-black italic tracking-tighter text-[#a855f7] drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" data-testid="text-app-title">ARC SPIN LOTTERY</h1>
+              <p className="text-[10px] text-purple-400/80 uppercase tracking-[0.2em] font-bold">Win Free USDC</p>
             </div>
           </div>
           
@@ -741,14 +741,14 @@ export default function App() {
           <div className="space-y-8">
             <div className="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-8">
               <div className="relative">
-                <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center border border-yellow-500/50 shadow-2xl">
-                  <Trophy className="w-14 h-14 text-black" />
+                <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+                  <RotateCcw className="w-14 h-14 text-white animate-[spin_6s_linear_infinite]" />
                 </div>
-                <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-pulse" />
+                <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-purple-400 animate-pulse drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
               </div>
               <div className="space-y-1 max-w-md">
-                <h2 className="text-4xl font-bold tracking-tight">Spin to Win USDC!</h2>
-                <p className="text-muted-foreground text-lg">Connect your wallet to spin the wheel and win up to 1000 USDC on Arc Testnet.</p>
+                <h2 className="text-4xl font-black italic tracking-tighter text-[#a855f7] drop-shadow-[0_0_12px_rgba(168,85,247,0.6)]">SPIN TO WIN USDC!</h2>
+                <p className="text-muted-foreground text-lg font-medium">Connect your wallet to spin the wheel and win up to 1000 USDC on Arc Testnet.</p>
               </div>
               <Button 
                 onClick={connectWallet}
@@ -765,11 +765,11 @@ export default function App() {
                 Connect Wallet to Play
               </Button>
               
-              <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 max-w-md w-full">
+              <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20 max-w-md w-full">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
+                  <CardTitle className="text-sm font-medium flex items-center justify-between gap-2 text-purple-300">
                     <div className="flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-yellow-500" /> Prize Pool
+                      <RotateCcw className="w-4 h-4 text-purple-500 animate-spin-slow" /> Prize Pool
                     </div>
                     <Badge variant="outline" className="text-green-500 border-green-500/50" data-testid="badge-contract-balance">
                       {contractBalance} USDC

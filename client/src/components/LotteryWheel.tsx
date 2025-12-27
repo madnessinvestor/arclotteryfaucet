@@ -130,7 +130,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
           </svg>
         </div>
         
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-transform duration-300 ${isSpinBusy ? 'translate-y-20' : ''}`}>
           <div className="flex flex-col items-center gap-2 relative">
             <Button
               onClick={onSpin}

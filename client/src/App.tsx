@@ -735,7 +735,7 @@ export default function App() {
                 </div>
                 <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-pulse" />
               </div>
-              <div className="space-y-3 max-w-md">
+              <div className="space-y-1 max-w-md">
                 <h2 className="text-4xl font-bold tracking-tight">Spin to Win USDC!</h2>
                 <p className="text-muted-foreground text-lg">Connect your wallet to spin the wheel and win up to 1000 USDC on Arc Testnet.</p>
               </div>
@@ -972,9 +972,9 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="flex flex-col items-center py-8">
-                  <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 p-12 py-24 w-full max-w-4xl shadow-[0_0_50px_rgba(234,179,8,0.1)]">
-                    <div className="text-center mb-16">
+                <div className="flex flex-col items-center">
+                  <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 p-12 w-full max-w-4xl shadow-[0_0_50px_rgba(234,179,8,0.1)]">
+                    <div className="text-center">
                       <h2 className="text-5xl font-black bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-400 bg-clip-text text-transparent tracking-tight">Spin to Win!</h2>
                     </div>
                     

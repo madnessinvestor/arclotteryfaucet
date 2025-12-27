@@ -331,6 +331,8 @@ export default function App() {
         description: "Please confirm the transaction in your wallet.",
       });
 
+      // setRotation(prev => prev + 360); // Removed to sync with contract result
+
       const tx = await contract.spin(randomNumber);
       
       setSpinStatus("Waiting for blockchain result...");
@@ -345,9 +347,7 @@ export default function App() {
       let rewardAmount = BigInt(0);
       let eventFound = false;
       
-      console.log("Transaction receipt:", receipt.hash);
-      console.log("Logs count:", receipt.logs.length);
-      
+      // Find SpinPlayed event in logs
       for (const log of receipt.logs) {
         try {
           if (log.address.toLowerCase() !== SPIN_CONTRACT_ADDRESS.toLowerCase()) {
@@ -359,43 +359,41 @@ export default function App() {
             data: log.data,
           });
           
-          console.log("Parsed log:", parsed?.name, parsed?.args);
-          
           if (parsed && parsed.name === "SpinPlayed") {
             const eventPlayer = parsed.args.player?.toLowerCase();
             const userAddress = address.toLowerCase();
             
-            console.log("Event player:", eventPlayer, "User address:", userAddress);
-            
             if (eventPlayer === userAddress) {
               rewardAmount = parsed.args.reward;
               eventFound = true;
-              console.log("SpinPlayed event found! Reward:", rewardAmount.toString());
               break;
             }
           }
         } catch (parseError) {
-          console.warn("Log parse error:", parseError);
           continue;
         }
       }
 
       if (!eventFound) {
-        console.error("SpinPlayed event not found. Logs:", receipt.logs);
         throw new Error("SpinPlayed event not found for your wallet");
       }
 
+      // 1. First set state that we got the result
       setIsWaitingForBlockchain(false);
-      setIsAnimating(true);
-      setSpinStatus("Spinning...");
-
+      
+      // 2. Identify the prize
       const targetIndex = getPrizeIndexByBigInt(rewardAmount);
       const rewardValue = Number(rewardAmount / BigInt(1000000));
       
+      // 3. START THE ANIMATION NOW
+      setIsAnimating(true);
+      setSpinStatus("Spinning...");
+
       const segmentAngle = 360 / prizes.length;
       const minSpins = 5;
       const maxSpins = 8;
       const spins = minSpins + Math.random() * (maxSpins - minSpins);
+      // Align to the center of the winning segment
       const targetAngle = 360 - (targetIndex * segmentAngle) - (segmentAngle / 2);
       const totalRotation = spins * 360 + targetAngle;
       

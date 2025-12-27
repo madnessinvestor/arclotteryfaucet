@@ -686,8 +686,9 @@ export default function App() {
         
         <header className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-purple-500/20 pb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-              <RotateCcw className="w-6 h-6 text-white animate-[spin_4s_linear_infinite]" />
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center border-4 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.6)] relative overflow-hidden">
+              <div className="absolute inset-0 border-2 border-dashed border-white/20 rounded-full animate-[spin_10s_linear_infinite]" />
+              <RotateCcw className="w-8 h-8 text-white animate-[spin_4s_linear_infinite] relative z-10" />
             </div>
             <div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-white uppercase italic animate-neon-flicker">

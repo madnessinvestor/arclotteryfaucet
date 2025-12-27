@@ -14,11 +14,10 @@ export const prizes: Prize[] = [
   { id: 0, label: "1000 USDC", value: 1000, color: "#FFD700", chance: "2%" },
   { id: 1, label: "200 USDC", value: 200, color: "#8b5cf6", chance: "3%" },
   { id: 2, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
-  { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "5%" },
-  { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "5%" },
-  { id: 5, label: "10 USDC", value: 10, color: "#3b82f6", chance: "10%" },
-  { id: 6, label: "5 USDC", value: 5, color: "#10b981", chance: "15%" },
-  { id: 7, label: "0 USDC", value: 0, color: "#374151", chance: "50%" },
+  { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
+  { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
+  { id: 5, label: "10 USDC", value: 10, color: "#3b82f6", chance: "15%" },
+  { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "40%" },
 ];
 
 /**
@@ -34,8 +33,7 @@ export const prizes: Prize[] = [
  * roll < 25  → 50 USDC   (índice 3)
  * roll < 45  → 20 USDC   (índice 4)
  * roll < 60  → 10 USDC   (índice 5)
- * roll < 75  → 5 USDC    (índice 6)
- * roll >= 75 → 0 USDC    (índice 7)
+ * roll >= 60 → 0 USDC    (índice 6)
  */
 export function getPrizeIndexByRoll(roll: number): number {
   if (roll < 2) return 0;   // 1000 USDC
@@ -44,8 +42,7 @@ export function getPrizeIndexByRoll(roll: number): number {
   if (roll < 25) return 3;  // 50 USDC
   if (roll < 45) return 4;  // 20 USDC
   if (roll < 60) return 5;  // 10 USDC
-  if (roll < 75) return 6;  // 5 USDC
-  return 7;                // 0 USDC
+  return 6;                // 0 USDC
 }
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
@@ -59,9 +56,8 @@ export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
     case 50:   return 3;
     case 20:   return 4;
     case 10:   return 5;
-    case 5:    return 6;
-    case 0:    return 7;
-    default:   return 7;
+    case 0:    return 6;
+    default:   return 6;
   }
 }
 

@@ -386,7 +386,13 @@ export default function App() {
       // 2. IDENTIFY THE PRIZE (using EXCLUSIVE mapping from SpinPlayed event)
       // ✅ ESPECIFICAÇÃO TÉCNICA: Mapear o reward do evento para o índice exato da roleta
       // 🚨 Nenhuma lógica auxiliar, apenas evento SpinPlayed é verdade
-      const rewardValue = Number(rewardAmount / BigInt(1000000));
+      // USDC on Arc Testnet has 6 decimals, but if the value is coming in as 18 decimals equivalent 
+      // because of a contract bug or ethers default parsing, we need to handle it.
+      // Based on user report: 20,000,000,000,000,000,000 raw = 20 USDC. 
+      // That means raw is in 18 decimals, while USDC should be 6. 
+      // 20 * 10^18 / 10^12 = 20 * 10^6.
+      // So if we divide by 10^18 we get 20.
+      const rewardValue = Number(rewardAmount / BigInt("1000000000000000000"));
       const roll = Number(eventRandom % BigInt(100));
       
       // Mandatory Log for Validation

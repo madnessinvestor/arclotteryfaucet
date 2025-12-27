@@ -131,7 +131,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
         </div>
         
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 relative">
             <Button
               onClick={onSpin}
               disabled={isSpinBusy || disabled}
@@ -139,17 +139,18 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
               style={{ width: '132px', height: '132px' }}
               data-testid="button-spin"
             >
-              {isWaitingForBlockchain || isAnimating ? (
-                <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="animate-spin" style={{ width: '54px', height: '54px' }} />
-                </div>
-              ) : (
+              {!isWaitingForBlockchain && !isAnimating && (
                 <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
                   <Zap style={{ width: '42px', height: '42px' }} />
                   <span style={{ fontSize: '18px' }}>SPIN</span>
                 </div>
               )}
             </Button>
+            {(isWaitingForBlockchain || isAnimating) && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="animate-spin" style={{ width: '54px', height: '54px' }} />
+              </div>
+            )}
             {spinStatus && !spinStatus.includes("disabled due to low contract liquidity") && (
               <div className="pointer-events-none bg-black/80 rounded-lg px-3 py-1 text-center mt-40 mb-12">
                 <span className="text-xs text-yellow-400 font-medium whitespace-pre-line leading-relaxed">

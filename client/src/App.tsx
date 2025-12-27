@@ -401,7 +401,7 @@ export default function App() {
       // But rewardValue is the absolute source of truth for display
       const targetIndex = getPrizeIndexByRoll(roll);
       
-      console.log(`✅ SpinPlayed Event: ${rewardValue} USDC (Roll: ${roll}) → Index ${targetIndex}`);
+      console.log(`✅ SpinPlayed Event: ${rewardValue.toLocaleString('en-US')} USDC (Roll: ${roll}) → Index ${targetIndex}`);
       
       // 3. START THE ANIMATION NOW
       setIsAnimating(true);

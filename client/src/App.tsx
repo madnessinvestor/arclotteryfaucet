@@ -778,12 +778,12 @@ export default function App() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">1000 USDC</span><span className="text-yellow-500 font-bold">2%</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">200 USDC</span><span className="text-purple-500 font-bold">3%</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">100 USDC</span><span className="text-pink-500 font-bold">10%</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">50 USDC</span><span className="text-amber-500 font-bold">10%</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">20 USDC</span><span className="text-cyan-500 font-bold">20%</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">10 USDC</span><span className="text-blue-500 font-bold">15%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">1000 USDC</span><span className="text-[#a855f7] font-bold drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">2%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">200 USDC</span><span className="text-purple-400 font-bold">3%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">100 USDC</span><span className="text-purple-300 font-bold">10%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">50 USDC</span><span className="text-purple-200 font-bold">10%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">20 USDC</span><span className="text-purple-100 font-bold">20%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">10 USDC</span><span className="text-purple-50 font-bold">15%</span></div>
                     <div className="flex justify-between col-span-2"><span className="text-muted-foreground">0 USDC</span><span className="text-gray-500 font-bold">40%</span></div>
                   </div>
                 </CardContent>

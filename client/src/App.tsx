@@ -433,6 +433,13 @@ export default function App() {
         setWonPrize(prize);
         setShowWinDialog(true);
         
+        toast({
+          title: rewardValue > 0 ? "Parabéns!" : "Que pena!",
+          description: rewardValue > 0 
+            ? `Você ganhou ${rewardValue} USDC!` 
+            : "Não foi dessa vez. Tente novamente!",
+        });
+        
         fetchBalance();
         fetchSpinsLeft();
         fetchContractBalance();

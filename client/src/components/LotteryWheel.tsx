@@ -150,7 +150,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
               )}
             </Button>
             {spinStatus && (
-              <div className="pointer-events-none bg-black/80 rounded-lg px-3 py-1 text-center mt-12 mb-12">
+              <div className="pointer-events-none bg-black/80 rounded-lg px-3 py-1 text-center mt-40 mb-12">
                 <span className="text-xs text-yellow-400 font-medium whitespace-pre-line leading-relaxed">
                   {spinStatus.includes("disabled due to low contract liquidity") 
                     ? spinStatus.replace("due to", "\ndue to") 

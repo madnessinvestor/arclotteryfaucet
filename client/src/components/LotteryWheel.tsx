@@ -62,7 +62,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
 
   return (
     <div className="relative flex flex-col items-center">
-      <div className="absolute -top-2 z-20 w-0 h-0 border-l-[22px] border-r-[22px] border-t-[37px] border-l-transparent border-r-transparent border-t-[#39FF14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]" />
+      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20 w-0 h-0 border-l-[22px] border-r-[22px] border-t-[37px] border-l-transparent border-r-transparent border-t-[#39FF14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]" />
       
       <div className="relative w-[422px] h-[422px] md:w-[591px] md:h-[591px]">
         <div

@@ -412,12 +412,9 @@ export default function App() {
       
       console.log(`✅ SpinPlayed Event: ${rewardValue.toLocaleString('en-US')} USDC (Roll: ${roll}) → Index ${targetIndex}`);
       
-      // Play "prêmio encontrado" sound as soon as prize is identified
-      playAudio("found");
-      
       // 3. START THE ANIMATION NOW
       setIsAnimating(true);
-      setAudioTriggered(true);
+      setAudioTriggered(false);
       setSpinStatus("Spinning...");
       
       // Play spin sound immediately
@@ -470,6 +467,12 @@ export default function App() {
         const prize = prizes[targetIndex];
         setWonPrize(prize);
         setShowWinDialog(true);
+        
+        // Play "prêmio encontrado" sound when wheel stops
+        if (!audioTriggered) {
+          playAudio("found");
+          setAudioTriggered(true);
+        }
         
         // Play win or loss sound based on reward
         if (rewardValue > 0) {

@@ -385,6 +385,8 @@ export default function App() {
       const targetIndex = getPrizeIndexByBigInt(rewardAmount);
       const rewardValue = Number(rewardAmount / BigInt(1000000));
       
+      console.log(`Contract Result: ${rewardValue} USDC, landing on index: ${targetIndex}`);
+      
       // 3. START THE ANIMATION NOW
       setIsAnimating(true);
       setSpinStatus("Spinning...");
@@ -934,14 +936,14 @@ export default function App() {
                 <>
                   <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
                   <span className="bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
-                    Congratulations!
+                    PARABÉNS!
                   </span>
                   <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
                 </>
               ) : (
                 <>
                   <AlertCircle className="w-6 h-6 text-muted-foreground" />
-                  Better Luck Next Time!
+                  Não foi dessa vez!
                 </>
               )}
             </DialogTitle>
@@ -958,12 +960,12 @@ export default function App() {
                   <Sparkles className="absolute -bottom-2 -left-2 w-6 h-6 text-yellow-400 animate-spin" style={{ animationDuration: '2s' }} />
                 </div>
                 <div className="text-center space-y-4">
-                  <p className="text-muted-foreground text-lg">You won</p>
+                  <p className="text-muted-foreground text-lg">Você ganhou</p>
                   <div className="text-5xl font-bold text-green-500 animate-pulse" data-testid="text-won-amount">
                     {lastWinAmount} USDC
                   </div>
                   <p className="text-muted-foreground">
-                    Your reward has been sent to your wallet!
+                    Seu prêmio foi enviado diretamente para sua carteira!
                   </p>
                   {lastTxHash && (
                     <a 
@@ -973,7 +975,7 @@ export default function App() {
                       className="text-xs text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
                       data-testid="link-tx-hash"
                     >
-                      View Transaction on Explorer
+                      Ver Transação no Explorer
                     </a>
                   )}
                 </div>
@@ -984,7 +986,7 @@ export default function App() {
                   <AlertCircle className="w-12 h-12 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground text-center">
-                  You didn't win this time. Keep spinning for a chance to win USDC!
+                  Não foi dessa vez. Continue tentando para ganhar prêmios em USDC!
                 </p>
               </>
             )}
@@ -996,10 +998,10 @@ export default function App() {
                 setWonPrize(null);
               }}
               variant="default"
-              className="w-full"
+              className="w-full bg-yellow-500 text-black hover:bg-yellow-400 font-bold"
               data-testid="button-close-dialog"
             >
-              {spinsLeft !== null && spinsLeft > 0 ? "Spin Again!" : "Close"}
+              {spinsLeft !== null && spinsLeft > 0 ? "GIRAR NOVAMENTE!" : "FECHAR"}
             </Button>
           </DialogFooter>
         </DialogContent>

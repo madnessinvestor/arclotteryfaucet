@@ -127,7 +127,8 @@ export default function App() {
         contract.nextReset(address),
         timeoutPromise
       ]) as bigint;
-      setNextResetTime(Number(resetTime));
+      // Convert relative seconds to absolute timestamp
+      setNextResetTime(Math.floor(Date.now() / 1000) + Number(resetTime));
     } catch (error) {
       console.error("Error fetching next reset:", error);
     }
@@ -149,7 +150,7 @@ export default function App() {
   }, [address, fetchSpinsLeft, fetchNextReset, fetchContractBalance, fetchBalance]);
 
   useEffect(() => {
-    if (spinsLeft !== null && spinsLeft === 0 && nextResetTime > 0) {
+    if (nextResetTime > 0) {
       let hasTriggeredRefresh = false;
       
       const calculateCountdown = () => {
@@ -160,8 +161,7 @@ export default function App() {
           setCountdown(null);
           if (!hasTriggeredRefresh && address) {
             hasTriggeredRefresh = true;
-            fetchSpinsLeft();
-            fetchNextReset();
+            refreshAllData();
           }
           return;
         }
@@ -176,10 +176,10 @@ export default function App() {
       calculateCountdown();
       const interval = setInterval(calculateCountdown, 1000);
       return () => clearInterval(interval);
-    } else if (spinsLeft !== null && spinsLeft > 0) {
+    } else {
       setCountdown(null);
     }
-  }, [spinsLeft, nextResetTime, address, fetchSpinsLeft, fetchNextReset]);
+  }, [nextResetTime, address, refreshAllData]);
 
   const connectWallet = async () => {
     if (!window.ethereum) {

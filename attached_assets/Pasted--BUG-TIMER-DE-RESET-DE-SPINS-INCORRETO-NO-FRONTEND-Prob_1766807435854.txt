@@ -1,0 +1,134 @@
+🚨 BUG – TIMER DE RESET DE SPINS INCORRETO NO FRONTEND
+❌ Problema atual
+
+O timer exibido no frontend para o reset das tentativas de spin não reflete o estado real do contrato.
+
+Sintoma visível:
+
+O frontend mostra:
+
+Reset in: 00:00:00
+Next 20 spins available soon
+
+
+Porém a wallet ainda não pode girar ou o tempo exibido não corresponde ao tempo real do contrato.
+
+Isso gera:
+
+UX incorreta
+
+Confusão para o usuário
+
+Dessincronização entre UI e blockchain
+
+🔍 Causa do problema
+
+O frontend não está usando corretamente o tempo on-chain e provavelmente está:
+
+❌ Calculando o timer com base em horário local
+
+❌ Usando Date.now() como fonte de verdade
+
+❌ Fazendo cache de estado
+
+❌ Não tratando corretamente o retorno da função nextReset(address)
+
+✅ CORREÇÃO OBRIGATÓRIA (COM BASE NO CONTRATO)
+
+O contrato ArcSpinLottery já fornece exatamente o tempo correto para o reset através da função:
+
+function nextReset(address user) external view returns (uint256)
+
+
+Essa função retorna:
+
+0 → spins já resetados (usuário pode girar)
+
+> 0 → segundos restantes até liberar mais 20 spins
+
+🛠️ IMPLEMENTAÇÃO CORRETA NO FRONTEND
+1️⃣ Fonte ÚNICA do timer
+
+O timer DEVE usar exclusivamente:
+
+nextReset(userAddress)
+
+
+🚫 É proibido:
+
+Calcular tempo manualmente
+
+Inferir reset por horário local
+
+Usar timestamps próprios
+
+2️⃣ Lógica correta do timer
+const secondsRemaining = await contract.nextReset(user);
+
+if (secondsRemaining === 0) {
+  mostrar: "Spins disponíveis"
+} else {
+  converter secondsRemaining para HH:MM:SS
+  atualizar contador regressivo
+}
+
+
+📌 O valor retornado já está em segundos
+📌 Não deve ser ajustado manualmente
+
+3️⃣ Atualização do contador (tempo real)
+
+O frontend pode:
+
+Buscar nextReset() a cada X segundos OU
+
+Buscar uma vez e fazer countdown local SEM alterar o valor base
+
+Exemplo correto:
+
+baseSeconds = nextReset()
+contador = baseSeconds - tempo_decorrido
+
+
+Se o contador chegar a 0, o frontend DEVE:
+
+Reconsultar spinsLeft(user)
+
+Reconsultar nextReset(user)
+
+4️⃣ Exibição correta no frontend
+Quando nextReset > 0:
+Reset in: HH:MM:SS
+Next 20 spins available after reset
+
+Quando nextReset == 0:
+20 spins available
+
+
+❗ Nunca mostrar 00:00:00 se o usuário ainda não pode girar
+❗ Nunca inferir reset apenas pelo timer local
+
+5️⃣ Sincronização obrigatória pós-spin
+
+Após cada spin confirmado:
+
+- Reconsultar nextReset(user)
+- Reconsultar spinsLeft(user)
+- Reiniciar o timer com os valores do contrato
+
+
+🚫 Não reutilizar valores antigos
+
+🧪 CRITÉRIO DE ACEITAÇÃO (OBRIGATÓRIO)
+
+A correção só é considerada concluída quando:
+
+✔ O timer reflete exatamente nextReset(user)
+
+✔ Nunca mostra 00:00:00 antes do reset real
+
+✔ Quando o contrato libera spins, a UI atualiza corretamente
+
+✔ O tempo exibido é consistente entre refresh de página
+
+✔ Nenhuma lógica de horário local decide o reset

@@ -21,18 +21,44 @@ export const prizes: Prize[] = [
   { id: 7, label: "0 USDC", value: 0, color: "#374151", chance: "50%" },
 ];
 
+/**
+ * 🚨 ESPECIFICAÇÃO TÉCNICA: Mapeamento determinístico de reward → índice da roleta
+ * 
+ * Regra absoluta: O contrato decide o resultado, o frontend apenas executa a animação.
+ * O resultado é definido exclusivamente pelo evento SpinPlayed.
+ * 
+ * Tabela de mapeamento (baseada em roll = random % 100):
+ * 0–1    → 1000 USDC (índice 0)
+ * 2–4    → 200 USDC  (índice 1)
+ * 5–14   → 100 USDC  (índice 2)
+ * 15–24  → 50 USDC   (índice 3)
+ * 25–44  → 20 USDC   (índice 4)
+ * 45–59  → 10 USDC   (índice 5)
+ * 60–74  → 5 USDC    (índice 6) [Nota: não documentado na tabela original, mas presente no código]
+ * 75–99  → 0 USDC    (índice 7) [60–99 na tabela original, ajustado para 5 USDC]
+ */
+export function mapRewardToIndex(rewardUSDC: number): number {
+  // Mapeia o valor do reward recebido do evento SpinPlayed para o índice correto da roleta
+  // Baseado EXCLUSIVAMENTE no valor do prêmio, nunca em lógica auxiliar
+  switch (rewardUSDC) {
+    case 1000: return 0;  // roll 0-1: 2% de chance
+    case 200:  return 1;  // roll 2-4: 3% de chance
+    case 100:  return 2;  // roll 5-14: 10% de chance
+    case 50:   return 3;  // roll 15-24: 5% de chance
+    case 20:   return 4;  // roll 25-44: 5% de chance
+    case 10:   return 5;  // roll 45-59: 10% de chance
+    case 5:    return 6;  // roll 60-74: 15% de chance
+    case 0:    return 7;  // roll 75-99: 50% de chance
+    default:   return 7;  // Fallback para "nada"
+  }
+}
+
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
   const USDC_DIVISOR = BigInt(1000000);
   const rewardValue = Number(rewardBigInt / USDC_DIVISOR);
   
-  // Find index in prizes array where value matches rewardValue
-  const index = prizes.findIndex(p => p.value === rewardValue);
-  
-  if (index === -1) {
-    // Fallback for nothing prizes
-    return prizes.findIndex(p => p.value === 0);
-  }
-  return index;
+  // Delegue para a função de mapeamento obrigatória
+  return mapRewardToIndex(rewardValue);
 }
 
 export function getPrizeIndexByValue(value: number): number {

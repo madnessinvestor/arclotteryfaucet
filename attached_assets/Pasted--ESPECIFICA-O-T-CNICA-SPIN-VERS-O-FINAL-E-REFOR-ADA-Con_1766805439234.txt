@@ -1,0 +1,137 @@
+📘 ESPECIFICAÇÃO TÉCNICA – SPIN (VERSÃO FINAL E REFORÇADA)
+
+Contrato: ArcSpinLottery.sol
+Regra fundamental: A roleta DEVE parar exatamente no prêmio definido on-chain.
+
+🚨 REGRA ABSOLUTA (OBRIGATÓRIA)
+
+O resultado do spin é decidido exclusivamente pelo contrato inteligente.
+A animação da roleta não pode, em hipótese alguma:
+
+Sortear prêmio
+
+Ajustar prêmio
+
+Corrigir resultado
+
+“Simular” vitória
+
+A roleta deve parar exatamente no segmento correspondente ao resultado emitido no evento SpinPlayed.
+
+1️⃣ DISPARO DO SPIN (Frontend)
+Usuário clica em "Spin"
+└─ Frontend consulta apenas dados ON-CHAIN:
+   ├─ spinsLeft(user) > 0
+   ├─ USDC.balanceOf(contract) ≥ 1000 USDC
+└─ Frontend gera uint256 random (32 bytes)
+└─ Frontend chama spin(random)
+└─ Usuário confirma a transação na carteira
+
+
+❗ Nenhum cálculo de prêmio ocorre aqui
+
+2️⃣ EXECUÇÃO ON-CHAIN (Contrato)
+Contrato executa spin(random)
+└─ Calcula roll = random % 100
+└─ Determina reward conforme tabela fixa
+└─ Transfere USDC
+└─ Emite evento SpinPlayed(player, reward, random, timestamp)
+
+
+📌 Esse evento define o resultado FINAL e IMUTÁVEL
+
+3️⃣ EVENTO = RESULTADO FINAL
+🔹 Fonte única de verdade
+SpinPlayed(
+  address player,
+  uint256 reward,
+  uint256 random,
+  uint256 timestamp
+)
+
+Frontend DEVE:
+└─ Ler o evento SpinPlayed
+└─ Usar EXCLUSIVAMENTE esse evento
+└─ Ignorar qualquer estado local
+
+
+❗ Se o evento indicar reward = 0, a roleta DEVE parar no segmento 0
+❗ Se indicar reward = 100 USDC, a roleta DEVE parar no segmento 100
+
+4️⃣ MAPEAMENTO OBRIGATÓRIO (CONTRATO → ROLETA)
+🔹 Regra técnica
+roll = random % 100
+
+🔹 Tabela EXATA (idêntica ao contrato)
+0–1    → 1000 USDC
+2–4    → 200 USDC
+5–14   → 100 USDC
+15–24  → 50 USDC
+25–44  → 20 USDC
+45–59  → 10 USDC
+60–99  → 0 USDC
+
+
+📌 Esse mapeamento:
+
+Não é opcional
+
+Não é interpretável
+
+Deve ser exatamente igual ao contrato
+
+5️⃣ ANIMAÇÃO DA ROLETA (OBRIGAÇÃO TÉCNICA)
+🔹 Fluxo obrigatório
+Evento SpinPlayed recebido
+└─ Extrair random
+└─ Calcular roll = random % 100
+└─ Mapear roll → índice fixo da roleta
+└─ Calcular ângulo final EXATO
+└─ Executar animação
+└─ Parar exatamente no índice correspondente
+
+
+🚨 A animação DEVE SER DETERMINÍSTICA
+🚨 Nunca pode parar em outro segmento
+
+6️⃣ PROIBIÇÕES EXPLÍCITAS
+
+🚫 É PROIBIDO:
+
+Sortear segmento no frontend
+
+Ajustar ângulo “para ficar bonito”
+
+Reatribuir segmento por valor
+
+Usar funções auxiliares não baseadas no evento
+
+Usar fallback visual diferente do resultado real
+
+7️⃣ ATUALIZAÇÃO DE ESTADO PÓS-SPIN
+Após a roleta parar:
+└─ Atualizar spinsLeft(user)
+└─ Atualizar nextReset(user)
+└─ Atualizar USDC.balanceOf(contract)
+└─ Atualizar USDC.balanceOf(user)
+
+
+📌 Tudo vindo do blockchain
+
+8️⃣ CRITÉRIO DE ACEITAÇÃO (CHECKLIST)
+
+O ajuste só é aceito se:
+
+✔ O evento SpinPlayed define o prêmio
+
+✔ A roleta para exatamente no segmento do contrato
+
+✔ Reward zero para exatamente no segmento zero
+
+✔ Não existe lógica paralela de resultado
+
+✔ Nunca há divergência entre evento e UI
+
+🔚 TEXTO FINAL CURTO (SE PRECISAR)
+
+Garantir que a roleta sempre pare exatamente no resultado definido pelo contrato ArcSpinLottery, usando exclusivamente o evento SpinPlayed como fonte de verdade, sem qualquer lógica off-chain de decisão ou correção visual.

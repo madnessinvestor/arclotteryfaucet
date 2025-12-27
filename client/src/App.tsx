@@ -381,16 +381,13 @@ export default function App() {
       // 1. First set state that we got the result
       setIsWaitingForBlockchain(false);
       
-      // 2. Identify the prize
-      let targetIndex = getPrizeIndexByBigInt(rewardAmount);
+      // 2. IDENTIFY THE PRIZE (using EXCLUSIVE mapping from SpinPlayed event)
+      // ✅ ESPECIFICAÇÃO TÉCNICA: Mapear o reward do evento para o índice exato da roleta
+      // 🚨 Nenhuma lógica auxiliar, apenas evento SpinPlayed é verdade
       const rewardValue = Number(rewardAmount / BigInt(1000000));
+      const targetIndex = getPrizeIndexByBigInt(rewardAmount);
       
-      // 5 USDC check
-      if (rewardValue === 5) {
-        targetIndex = 6;
-      }
-      
-      console.log(`Contract Result: ${rewardValue} USDC, landing on index: ${targetIndex}`);
+      console.log(`✅ SpinPlayed Event: ${rewardValue} USDC → Index ${targetIndex}`);
       
       // 3. START THE ANIMATION NOW
       setIsAnimating(true);

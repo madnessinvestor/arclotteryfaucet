@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Wallet, Gift, AlertCircle, AlertTriangle, Clock, Trophy, Sparkles, PartyPopper, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { LotteryWheel, prizes, getPrizeIndexByBigInt, type Prize } from "./components/LotteryWheel";
+import { LotteryWheel, prizes, getPrizeIndexByRoll, type Prize } from "./components/LotteryWheel";
 import { 
   SPIN_CONTRACT_ADDRESS, 
   USDC_ADDRESS, 
@@ -345,6 +345,7 @@ export default function App() {
       const receipt = await tx.wait();
       
       let rewardAmount = BigInt(0);
+      let eventRandom = BigInt(0);
       let eventFound = false;
       
       // Find SpinPlayed event in logs
@@ -365,6 +366,7 @@ export default function App() {
             
             if (eventPlayer === userAddress) {
               rewardAmount = parsed.args.reward;
+              eventRandom = parsed.args.random;
               eventFound = true;
               break;
             }
@@ -385,9 +387,21 @@ export default function App() {
       // ✅ ESPECIFICAÇÃO TÉCNICA: Mapear o reward do evento para o índice exato da roleta
       // 🚨 Nenhuma lógica auxiliar, apenas evento SpinPlayed é verdade
       const rewardValue = Number(rewardAmount / BigInt(1000000));
-      const targetIndex = getPrizeIndexByBigInt(rewardAmount);
+      const roll = Number(eventRandom % BigInt(100));
       
-      console.log(`✅ SpinPlayed Event: ${rewardValue} USDC → Index ${targetIndex}`);
+      // Mandatory Log for Validation
+      console.log({
+        eventReward: rewardAmount.toString(),
+        eventRandom: eventRandom.toString(),
+        roll: roll.toString(),
+        rewardValue: rewardValue
+      });
+      
+      // Determine target index from roll (ONLY for visual positioning)
+      // But rewardValue is the absolute source of truth for display
+      const targetIndex = getPrizeIndexByRoll(roll);
+      
+      console.log(`✅ SpinPlayed Event: ${rewardValue} USDC (Roll: ${roll}) → Index ${targetIndex}`);
       
       // 3. START THE ANIMATION NOW
       setIsAnimating(true);

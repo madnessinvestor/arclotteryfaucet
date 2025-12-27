@@ -22,52 +22,47 @@ export const prizes: Prize[] = [
 ];
 
 /**
- * 🚨 ESPECIFICAÇÃO TÉCNICA: Mapeamento determinístico de reward → índice da roleta
+ * 🚨 ESPECIFICAÇÃO TÉCNICA: Mapeamento determinístico de roll → índice da roleta
  * 
  * Regra absoluta: O contrato decide o resultado, o frontend apenas executa a animação.
  * O resultado é definido exclusivamente pelo evento SpinPlayed.
  * 
- * Tabela de mapeamento (baseada em roll = random % 100):
- * 0–1    → 1000 USDC (índice 0)
- * 2–4    → 200 USDC  (índice 1)
- * 5–14   → 100 USDC  (índice 2)
- * 15–24  → 50 USDC   (índice 3)
- * 25–44  → 20 USDC   (índice 4)
- * 45–59  → 10 USDC   (índice 5)
- * 60–74  → 5 USDC    (índice 6) [Nota: não documentado na tabela original, mas presente no código]
- * 75–99  → 0 USDC    (índice 7) [60–99 na tabela original, ajustado para 5 USDC]
+ * Tabela de mapeamento (roll = random % 100):
+ * roll < 2   → 1000 USDC (índice 0)
+ * roll < 5   → 200 USDC  (índice 1)
+ * roll < 15  → 100 USDC  (índice 2)
+ * roll < 25  → 50 USDC   (índice 3)
+ * roll < 45  → 20 USDC   (índice 4)
+ * roll < 60  → 10 USDC   (índice 5)
+ * roll < 75  → 5 USDC    (índice 6)
+ * roll >= 75 → 0 USDC    (índice 7)
  */
-export function mapRewardToIndex(rewardUSDC: number): number {
-  // Mapeia o valor do reward recebido do evento SpinPlayed para o índice correto da roleta
-  // Baseado EXCLUSIVAMENTE no valor do prêmio, nunca em lógica auxiliar
-  switch (rewardUSDC) {
-    case 1000: return 0;  // roll 0-1: 2% de chance
-    case 200:  return 1;  // roll 2-4: 3% de chance
-    case 100:  return 2;  // roll 5-14: 10% de chance
-    case 50:   return 3;  // roll 15-24: 5% de chance
-    case 20:   return 4;  // roll 25-44: 5% de chance
-    case 10:   return 5;  // roll 45-59: 10% de chance
-    case 5:    return 6;  // roll 60-74: 15% de chance
-    case 0:    return 7;  // roll 75-99: 50% de chance
-    default:   return 7;  // Fallback para "nada"
-  }
+export function getPrizeIndexByRoll(roll: number): number {
+  if (roll < 2) return 0;   // 1000 USDC
+  if (roll < 5) return 1;   // 200 USDC
+  if (roll < 15) return 2;  // 100 USDC
+  if (roll < 25) return 3;  // 50 USDC
+  if (roll < 45) return 4;  // 20 USDC
+  if (roll < 60) return 5;  // 10 USDC
+  if (roll < 75) return 6;  // 5 USDC
+  return 7;                // 0 USDC
 }
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
   const USDC_DIVISOR = BigInt(1000000);
   const rewardValue = Number(rewardBigInt / USDC_DIVISOR);
   
-  // Delegue para a função de mapeamento obrigatória
-  return mapRewardToIndex(rewardValue);
-}
-
-export function getPrizeIndexByValue(value: number): number {
-  const matchingPrizes = prizes.filter(p => p.value === value);
-  if (matchingPrizes.length === 0) {
-    return prizes.findIndex(p => p.value === 0);
+  switch (rewardValue) {
+    case 1000: return 0;
+    case 200:  return 1;
+    case 100:  return 2;
+    case 50:   return 3;
+    case 20:   return 4;
+    case 10:   return 5;
+    case 5:    return 6;
+    case 0:    return 7;
+    default:   return 7;
   }
-  const randomMatch = matchingPrizes[Math.floor(Math.random() * matchingPrizes.length)];
-  return randomMatch.id;
 }
 
 interface LotteryWheelProps {

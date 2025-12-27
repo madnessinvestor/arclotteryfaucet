@@ -458,7 +458,7 @@ export default function App() {
         toast({
           title: rewardValue > 0 ? "Congratulations!" : "Better Luck Next Time!",
           description: rewardValue > 0 
-            ? `You won ${rewardValue} USDC!` 
+            ? `You won ${rewardValue.toLocaleString('en-US')} USDC!` 
             : "Keep spinning for a chance to win!",
         });
         
@@ -982,7 +982,7 @@ export default function App() {
                 <div className="text-center space-y-4">
                   <p className="text-muted-foreground text-lg">You won</p>
                   <div className="text-5xl font-bold text-green-500 animate-pulse" data-testid="text-won-amount">
-                    {lastWinAmount} USDC
+                    {lastWinAmount.toLocaleString('en-US')} USDC
                   </div>
                   <p className="text-muted-foreground">
                     Your reward has been sent directly to your wallet!

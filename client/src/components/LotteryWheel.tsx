@@ -16,16 +16,18 @@ export const prizes: Prize[] = [
   { id: 2, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
   { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
   { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
-  { id: 5, label: "0 USDC", value: 0, color: "#374151", chance: "55%" },
+  { id: 5, label: "10 USDC", value: 10, color: "#FFD700", chance: "15%" },
+  { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "40%" },
 ];
 
 export function getPrizeIndexByRoll(roll: number): number {
-  if (roll < 2) return 0;   // 1000 USDC
-  if (roll < 5) return 1;   // 200 USDC
-  if (roll < 15) return 2;  // 100 USDC
-  if (roll < 25) return 3;  // 50 USDC
-  if (roll < 45) return 4;  // 20 USDC
-  return 5;                // 0 USDC
+  if (roll <= 1) return 0;   // 0-1   -> 1000 USDC
+  if (roll <= 4) return 1;   // 2-4   -> 200 USDC
+  if (roll <= 14) return 2;  // 5-14  -> 100 USDC
+  if (roll <= 24) return 3;  // 15-24 -> 50 USDC
+  if (roll <= 44) return 4;  // 25-44 -> 20 USDC
+  if (roll <= 59) return 5;  // 45-59 -> 10 USDC
+  return 6;                  // 60-99 -> 0 USDC
 }
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
@@ -38,7 +40,8 @@ export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
     case 100:  return 2;
     case 50:   return 3;
     case 20:   return 4;
-    default:   return 5;
+    case 10:   return 5;
+    default:   return 6;
   }
 }
 
@@ -177,8 +180,12 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
           <span className="text-muted-foreground">20 USDC (20%)</span>
         </div>
         <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FFD700" }} />
+          <span className="text-muted-foreground">10 USDC (15%)</span>
+        </div>
+        <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#374151" }} />
-          <span className="text-muted-foreground">Nothing (55%)</span>
+          <span className="text-muted-foreground">Nothing (40%)</span>
         </div>
       </div>
     </div>

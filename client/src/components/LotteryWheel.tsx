@@ -11,12 +11,12 @@ export interface Prize {
 }
 
 export const prizes: Prize[] = [
-  { id: 0, label: "1000 USDC", value: 1000, color: "#FFD700", chance: "2%" },
+  { id: 0, label: "1000 USDC", value: 1000, color: "#1e3a5f", chance: "2%" },
   { id: 1, label: "200 USDC", value: 200, color: "#8b5cf6", chance: "3%" },
   { id: 2, label: "100 USDC", value: 100, color: "#f472b6", chance: "10%" },
   { id: 3, label: "50 USDC", value: 50, color: "#f59e0b", chance: "10%" },
   { id: 4, label: "20 USDC", value: 20, color: "#06b6d4", chance: "20%" },
-  { id: 5, label: "10 USDC", value: 10, color: "#3b82f6", chance: "15%" },
+  { id: 5, label: "10 USDC", value: 10, color: "#FFD700", chance: "15%" },
   { id: 6, label: "0 USDC", value: 0, color: "#374151", chance: "40%" },
 ];
 
@@ -176,7 +176,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
 
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FFD700" }} />
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#1e3a5f" }} />
           <span className="text-muted-foreground">1000 USDC (2%)</span>
         </div>
         <div className="flex items-center gap-1">
@@ -196,7 +196,7 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
           <span className="text-muted-foreground">20 USDC (20%)</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#3b82f6" }} />
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FFD700" }} />
           <span className="text-muted-foreground">10 USDC (15%)</span>
         </div>
         <div className="flex items-center gap-1">

@@ -32,23 +32,23 @@
 
 @keyframes neon-pulse {
   0%, 100% {
-    filter: brightness(1) drop-shadow(0 0 2px #FFD700);
+    filter: brightness(1) drop-shadow(0 0 2px #00fff9);
     opacity: 1;
   }
   50% {
-    filter: brightness(1.8) drop-shadow(0 0 15px #FFD700);
+    filter: brightness(1.8) drop-shadow(0 0 15px #00fff9);
     opacity: 0.9;
   }
 }
 
 @keyframes neon-text {
   0%, 100% {
-    filter: drop-shadow(0 0 2px #FFD700);
+    filter: drop-shadow(0 0 2px #00fff9);
     fill: #ffffff;
   }
   50% {
-    filter: drop-shadow(0 0 8px #FFD700);
-    fill: #FFD700;
+    filter: drop-shadow(0 0 8px #00fff9);
+    fill: #00fff9;
   }
 }
 

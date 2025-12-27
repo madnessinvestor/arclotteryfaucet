@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Wallet, Gift, AlertCircle, AlertTriangle, Clock, Trophy, Sparkles, PartyPopper, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAudio } from "@/hooks/use-audio";
 import { Toaster } from "@/components/ui/toaster";
 import { LotteryWheel, prizes, getPrizeIndexByRoll, type Prize } from "./components/LotteryWheel";
 import { 
@@ -30,6 +31,7 @@ const shortenAddress = (address: string) => {
 };
 
 export default function App() {
+  const { playAudio } = useAudio();
   const [address, setAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isOnArcNetwork, setIsOnArcNetwork] = useState(false);
@@ -54,6 +56,7 @@ export default function App() {
   const [spinsError, setSpinsError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLowLiquidity, setIsLowLiquidity] = useState(false);
+  const [audioTriggered, setAudioTriggered] = useState(false);
 
   const arcReadProvider = useMemo(() => new JsonRpcProvider(ARC_TESTNET.rpcUrl, undefined, { staticNetwork: true }), []);
 
@@ -411,7 +414,11 @@ export default function App() {
       
       // 3. START THE ANIMATION NOW
       setIsAnimating(true);
+      setAudioTriggered(false);
       setSpinStatus("Spinning...");
+      
+      // Play spin sound immediately
+      playAudio("spin");
 
       const segmentAngle = 360 / prizes.length;
       const minSpins = 5;
@@ -437,6 +444,14 @@ export default function App() {
       setRotation(prev => prev + totalRotation);
       setLastWinAmount(rewardValue);
       setLastTxHash(receipt.hash);
+      
+      // Play "premio encontrado" sound at 9 seconds (before animation ends at 10s)
+      setTimeout(() => {
+        if (!audioTriggered) {
+          playAudio("found");
+          setAudioTriggered(true);
+        }
+      }, 9000);
 
       try {
         await fetch("/api/spin-result", {
@@ -460,6 +475,13 @@ export default function App() {
         const prize = prizes[targetIndex];
         setWonPrize(prize);
         setShowWinDialog(true);
+        
+        // Play win or loss sound based on reward
+        if (rewardValue > 0) {
+          playAudio("win");
+        } else {
+          playAudio("loss");
+        }
         
         toast({
           title: rewardValue > 0 ? "Congratulations!" : "Better Luck Next Time!",

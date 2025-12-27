@@ -1,0 +1,147 @@
+🚨 BUG CRÍTICO – RESULTADO DO SPIN DIVERGENTE DO CONTRATO
+❌ Problema atual (reproduzível)
+
+O frontend está exibindo um resultado diferente do que o contrato ArcSpinLottery efetivamente retorna.
+
+Exemplo real:
+
+Contrato emite evento:
+
+SpinPlayed
+reward = 100 USDC
+
+
+Frontend mostra:
+
+0 USDC
+
+
+Isso caracteriza dessincronização grave entre UI e blockchain.
+
+🔍 Causa provável (o que está errado hoje)
+
+O frontend NÃO está usando o evento SpinPlayed como fonte única de verdade e está:
+
+❌ Recalculando o prêmio off-chain
+
+❌ Inferindo o segmento por valor local
+
+❌ Usando lógica própria (ex: getPrizeIndexByBigInt, fallback, ou Math.random)
+
+❌ Ignorando ou sobrescrevendo o reward vindo do evento
+
+❌ Usando decimais incorretos (USDC ≠ 18 decimais)
+
+✅ CORREÇÃO OBRIGATÓRIA (PASSO A PASSO)
+1️⃣ Fonte ÚNICA do resultado
+
+O frontend DEVE:
+
+- Ler o receipt da transação
+- Extrair exclusivamente o evento SpinPlayed
+- Usar APENAS:
+  - event.reward
+  - event.random
+
+
+🚨 Qualquer outro cálculo deve ser removido
+
+2️⃣ Reward (valor ganho)
+reward = event.reward  // uint256
+rewardUSDC = reward / 1e6
+
+
+📌 O frontend NÃO pode:
+
+Deduzir prêmio pelo roll
+
+Deduzir prêmio pelo segmento
+
+Deduzir prêmio pelo valor anterior
+
+O valor exibido TEM que ser exatamente o do evento.
+
+3️⃣ Segmento da roleta (somente visual)
+
+O segmento NÃO vem do valor, vem de:
+
+roll = event.random % 100
+
+
+E deve respeitar exatamente:
+
+roll < 2   → 1000 USDC
+roll < 5   → 200 USDC
+roll < 15  → 100 USDC
+roll < 25  → 50 USDC
+roll < 45  → 20 USDC
+roll < 60  → 10 USDC
+roll >= 60 → 0 USDC
+
+
+📌 Esse mapeamento é apenas para:
+
+Definir índice da roleta
+
+Calcular ângulo final
+
+❗ Nunca para definir o valor exibido
+
+4️⃣ Ordem correta de execução (OBRIGATÓRIA)
+1. Usuário confirma transação
+2. Transação minera
+3. Frontend extrai SpinPlayed do receipt
+4. reward = event.reward
+5. roll = event.random % 100
+6. UI anima a roleta até o segmento correto
+7. UI exibe reward exatamente igual ao contrato
+
+
+🚫 Qualquer outra ordem gera dessync
+
+5️⃣ Remoções obrigatórias
+
+Remover do frontend:
+
+❌ Qualquer cálculo de prêmio off-chain
+
+❌ Qualquer fallback visual de resultado
+
+❌ Funções que deduzem segmento por valor
+
+❌ Uso de Math.random
+
+❌ Lógica baseada em estado local ou cache
+
+6️⃣ Log obrigatório para validação (DEBUG)
+
+Adicionar log temporário:
+
+console.log({
+  eventReward: event.reward.toString(),
+  eventRandom: event.random.toString(),
+  roll: event.random % 100
+});
+
+
+✔ O valor logado TEM que bater com:
+
+Evento
+
+UI
+
+Animação
+
+🧪 CRITÉRIO DE ACEITAÇÃO (SEM DISCUSSÃO)
+
+A correção só é considerada concluída quando:
+
+✔ Frontend exibe exatamente event.reward
+
+✔ Reward 100 no contrato → UI mostra 100
+
+✔ Reward 0 no contrato → UI mostra 0
+
+✔ Roleta para exatamente no segmento correto
+
+✔ Nenhum cálculo off-chain altera resultado

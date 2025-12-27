@@ -837,7 +837,10 @@ export default function App() {
                               <span className={spinsLeft > 0 ? "text-green-500" : "text-red-500"}>{spinsLeft}</span>
                               <span className="text-muted-foreground"> / {MAX_SPINS_PER_DAY}</span>
                             </div>
-                            {spinsLeft === 0 && (
+                            {spinsLeft === 0 && !countdown && (
+                              <p className="text-xs text-green-500 mt-2 font-bold uppercase tracking-wider">20 spins available</p>
+                            )}
+                            {spinsLeft === 0 && countdown && (
                               <p className="text-xs text-muted-foreground mt-2">Come back tomorrow for more spins!</p>
                             )}
                           </>
@@ -858,21 +861,22 @@ export default function App() {
                     <AlertDescription className="text-red-400">
                       <p className="mb-3">You have used all {MAX_SPINS_PER_DAY} spins for today.</p>
                       {countdown && (
-                        <div className="flex items-center gap-2">
-                          <span>Next spins available in:</span>
-                          <div className="flex gap-1 font-mono text-lg font-bold text-red-500" data-testid="text-countdown">
-                            <div className="bg-red-500/20 rounded px-2 py-1">
+                        <div className="flex flex-col items-center gap-3">
+                          <span className="text-muted-foreground font-medium">Reset in:</span>
+                          <div className="flex gap-2 font-mono text-3xl font-bold text-yellow-500" data-testid="text-countdown">
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
                               {String(countdown.hours).padStart(2, '0')}
                             </div>
-                            <span className="text-red-400">:</span>
-                            <div className="bg-red-500/20 rounded px-2 py-1">
+                            <span className="text-yellow-500/50 self-center">:</span>
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
                               {String(countdown.minutes).padStart(2, '0')}
                             </div>
-                            <span className="text-red-400">:</span>
-                            <div className="bg-red-500/20 rounded px-2 py-1">
+                            <span className="text-yellow-500/50 self-center">:</span>
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 min-w-[3.5rem] text-center">
                               {String(countdown.seconds).padStart(2, '0')}
                             </div>
                           </div>
+                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Next 20 spins available after reset</p>
                         </div>
                       )}
                       {!countdown && (

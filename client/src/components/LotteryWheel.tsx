@@ -23,17 +23,16 @@ export const prizes: Prize[] = [
 
 export function getPrizeIndexByBigInt(rewardBigInt: bigint): number {
   const USDC_DIVISOR = BigInt(1000000);
-  const rewardValue = rewardBigInt / USDC_DIVISOR;
+  const rewardValue = Number(rewardBigInt / USDC_DIVISOR);
   
-  const matchingPrizes = prizes.filter(p => BigInt(p.value) === rewardValue);
-  if (matchingPrizes.length === 0) {
-    const nothingPrizes = prizes.filter(p => p.value === 0);
-    if (nothingPrizes.length > 0) {
-      return nothingPrizes[Math.floor(Math.random() * nothingPrizes.length)].id;
-    }
-    return 1;
+  // Find index in prizes array where value matches rewardValue
+  const index = prizes.findIndex(p => p.value === rewardValue);
+  
+  if (index === -1) {
+    // Fallback for nothing prizes
+    return prizes.findIndex(p => p.value === 0);
   }
-  return matchingPrizes[Math.floor(Math.random() * matchingPrizes.length)].id;
+  return index;
 }
 
 export function getPrizeIndexByValue(value: number): number {

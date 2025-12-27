@@ -392,10 +392,21 @@ export default function App() {
       const segmentAngle = 360 / prizes.length;
       const minSpins = 5;
       const maxSpins = 8;
-      const spins = minSpins + Math.random() * (maxSpins - minSpins);
-      // Align to the center of the winning segment
-      const targetAngle = 360 - (targetIndex * segmentAngle) - (segmentAngle / 2);
-      const totalRotation = spins * 360 + targetAngle;
+      const spins = Math.floor(minSpins + Math.random() * (maxSpins - minSpins));
+      
+      // Calculate rotation to land exactly on the segment
+      // CSS rotation is clockwise, segments are mapped counter-clockwise from top (-90deg)
+      // To land on index 'i', we need the wheel to be at: 360 - (i * segmentAngle) - (segmentAngle / 2)
+      const targetAngle = (360 - (targetIndex * segmentAngle) - (segmentAngle / 2)) % 360;
+      
+      // Current rotation modulo 360
+      const currentRotationMod = rotation % 360;
+      
+      // Calculate additional rotation needed
+      let additionalRotation = (targetAngle - currentRotationMod + 360) % 360;
+      
+      // Add multiple full spins
+      const totalRotation = (spins * 360) + additionalRotation;
       
       setRotation(prev => prev + totalRotation);
       setLastWinAmount(rewardValue);

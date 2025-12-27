@@ -887,10 +887,9 @@ export default function App() {
                 )}
 
                 <div className="flex flex-col items-center py-8">
-                  <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 p-12 w-full max-w-4xl shadow-[0_0_50px_rgba(234,179,8,0.1)]">
-                    <div className="text-center mb-10">
-                      <h2 className="text-4xl font-black mb-3 bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-400 bg-clip-text text-transparent tracking-tight">Spin to Win!</h2>
-                      <p className="text-muted-foreground text-lg font-medium">Try your luck and win USDC prizes instantly</p>
+                  <Card className="bg-card/50 backdrop-blur-sm border-yellow-500/20 p-12 py-24 w-full max-w-4xl shadow-[0_0_50px_rgba(234,179,8,0.1)]">
+                    <div className="text-center mb-16">
+                      <h2 className="text-5xl font-black bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-400 bg-clip-text text-transparent tracking-tight">Spin to Win!</h2>
                     </div>
                     
                     <div className="scale-110 md:scale-125 origin-center py-10">

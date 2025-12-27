@@ -905,24 +905,6 @@ export default function App() {
                       />
                     </div>
 
-                    {isSpinBusy ? null : (
-                      isConnected && isOnArcNetwork && spinsLeft === 0 ? (
-                        <div className="flex flex-col items-center gap-2 mt-6">
-                          <div className="flex items-center gap-2">
-                            <RotateCcw className="w-4 h-4 text-yellow-500 animate-spin" />
-                            <span className="text-sm font-medium text-yellow-500">Reset in</span>
-                          </div>
-                          <div className="text-2xl font-black font-mono tracking-wider text-yellow-400">
-                            {countdown ? (
-                              `${String(countdown.hours).padStart(2, '0')}:${String(countdown.minutes).padStart(2, '0')}:${String(countdown.seconds).padStart(2, '0')}`
-                            ) : (
-                              "00:00:00"
-                            )}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Next 20 spins available soon</p>
-                        </div>
-                      ) : null
-                    )}
                     {isLowLiquidity && (
                       <p className="text-center text-sm text-red-400 mt-6">
                         Spin disabled due to low contract liquidity.

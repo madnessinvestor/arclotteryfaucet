@@ -64,14 +64,14 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
     <div className="relative flex flex-col items-center">
       <div className="absolute -top-2 z-20 w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-[#39FF14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]" />
       
-      <div className="relative w-[375px] h-[375px] md:w-[525px] md:h-[525px]">
+      <div className="relative w-[281px] h-[281px] md:w-[394px] md:h-[394px]">
         <div
           ref={wheelRef}
-          className="w-full h-full rounded-full border-[12px] border-yellow-500 shadow-[0_0_100px_rgba(255,215,0,0.5)] overflow-hidden"
+          className="w-full h-full rounded-full border-[9px] border-yellow-500 shadow-[0_0_75px_rgba(255,215,0,0.5)] overflow-hidden"
           style={{
             transform: `rotate(${rotation}deg)`,
             transition: isAnimating ? 'transform 10s cubic-bezier(0.15, 0, 0.15, 1)' : 'none',
-            boxShadow: '0 0 100px rgba(255, 215, 0, 0.5), inset 0 0 60px rgba(0,0,0,0.6)',
+            boxShadow: '0 0 75px rgba(255, 215, 0, 0.5), inset 0 0 45px rgba(0,0,0,0.6)',
           }}
         >
           <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -135,17 +135,17 @@ export function LotteryWheel({ onSpin, disabled, isWaitingForBlockchain, isAnima
             <Button
               onClick={onSpin}
               disabled={isSpinBusy || disabled}
-              className="pointer-events-auto w-30 h-30 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-2xl font-bold shadow-2xl border-8 border-yellow-300 transition-all active:scale-95 flex items-center justify-center p-0"
+              className="pointer-events-auto w-22 h-22 md:w-27 md:h-27 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-black hover:from-yellow-300 hover:to-yellow-500 text-xl font-bold shadow-2xl border-6 border-yellow-300 transition-all active:scale-95 flex items-center justify-center p-0"
               data-testid="button-spin"
             >
               {isWaitingForBlockchain || isAnimating ? (
                 <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="w-12 h-12 md:w-16 md:h-16 animate-spin" />
+                  <Loader2 className="w-9 h-9 md:w-12 md:h-12 animate-spin" />
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-                  <Zap className="w-10 h-10" />
-                  <span>SPIN</span>
+                  <Zap className="w-7 h-7" />
+                  <span className="text-lg">SPIN</span>
                 </div>
               )}
             </Button>
